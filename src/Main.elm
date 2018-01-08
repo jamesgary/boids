@@ -34,7 +34,11 @@ type alias Flags =
 
 
 defaultSpeed =
-    1
+    0.4
+
+
+defaultNumBoids =
+    10
 
 
 main =
@@ -51,7 +55,7 @@ init { timestamp, width, height } =
     let
         ( boids, seed ) =
             boidGenerator width height
-                |> Random.list 10
+                |> Random.list defaultNumBoids
                 |> (\gen -> Random.step gen (Random.initialSeed timestamp))
     in
     ( { boids = boids
@@ -80,15 +84,46 @@ boidGenerator width height =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ boids } as model) =
+update msg ({ boids, width, height } as model) =
     case msg of
         Tick time ->
-            ( { model | boids = List.map (applyVel time) boids }, Cmd.none )
+            ( { model
+                | boids =
+                    List.map (applyVel time >> wrapBoid width height)
+                        boids
+              }
+            , Cmd.none
+            )
 
 
 applyVel : Time -> Boid -> Boid
 applyVel time ({ pos, vel } as boid) =
     { boid | pos = V2.add pos (V2.scale time vel) }
+
+
+wrapBoid : Float -> Float -> Boid -> Boid
+wrapBoid width height ({ pos } as boid) =
+    { boid
+        | pos =
+            pos
+                |> V2.toTuple
+                |> (\( x, y ) ->
+                        ( wrap width x
+                        , wrap height y
+                        )
+                   )
+                |> V2.fromTuple
+    }
+
+
+wrap : Float -> Float -> Float
+wrap max val =
+    if val < 0 then
+        wrap max (val + max)
+    else if val > max then
+        wrap max (val - max)
+    else
+        val
 
 
 view : Model -> Html Msg
@@ -107,10 +142,24 @@ drawBoid ({ pos } as boid) =
 
 
 drawBoidHelper : Boid -> Html Msg
-drawBoidHelper { pos } =
+drawBoidHelper { pos, vel } =
+    let
+        translateVal =
+            px (getX pos) ++ "," ++ px (getY pos)
+
+        rotateVal =
+            vel
+                |> V2.toTuple
+                |> (\( x, y ) -> atan2 y x)
+                |> toString
+    in
     div
         [ class "boid"
-        , style [ ( "transform", "translate(" ++ px (getX pos) ++ "," ++ px (getY pos) ++ ")" ) ]
+        , style
+            [ ( "transform"
+              , "translate(" ++ translateVal ++ ") rotate(" ++ rotateVal ++ "rad)"
+              )
+            ]
         ]
         []
 
