@@ -41,6 +41,10 @@ defaultNumBoids =
     10
 
 
+boidViewRad =
+    50
+
+
 main =
     Html.programWithFlags
         { init = init
@@ -127,18 +131,45 @@ wrap max val =
 
 
 view : Model -> Html Msg
-view { boids } =
+view { boids, width, height } =
     div [ class "boids" ]
         (boids
-            |> List.map drawBoid
+            |> List.map (drawBoid width height)
             |> List.concat
         )
 
 
-drawBoid : Boid -> List (Html Msg)
-drawBoid ({ pos } as boid) =
-    -- TODO: wrap
+drawBoid : Float -> Float -> Boid -> List (Html Msg)
+drawBoid width height ({ pos } as boid) =
+    let
+        ( x, y ) =
+            V2.toTuple pos
+    in
     [ drawBoidHelper boid ]
+        |> (\boids ->
+                if x < boidViewRad then
+                    drawBoidHelper { boid | pos = V2.fromTuple ( x + width, y ) } :: boids
+                else
+                    boids
+           )
+        |> (\boids ->
+                if x > width - boidViewRad then
+                    drawBoidHelper { boid | pos = V2.fromTuple ( x - width, y ) } :: boids
+                else
+                    boids
+           )
+        |> (\boids ->
+                if y < boidViewRad then
+                    drawBoidHelper { boid | pos = V2.fromTuple ( x, y + height ) } :: boids
+                else
+                    boids
+           )
+        |> (\boids ->
+                if y > height - boidViewRad then
+                    drawBoidHelper { boid | pos = V2.fromTuple ( x, y - height ) } :: boids
+                else
+                    boids
+           )
 
 
 drawBoidHelper : Boid -> Html Msg
