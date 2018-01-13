@@ -49,11 +49,11 @@ vecAvg vList =
 
 
 defaultBoidRad =
-    25
+    50
 
 
 defaultSpeed =
-    0.00005
+    0.3
 
 
 defaultMaxSpeed =

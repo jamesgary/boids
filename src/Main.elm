@@ -72,13 +72,14 @@ update msg ({ boids, width, height } as model) =
                                         (List.map .vel
                                             (getNearbyBoids defaultSightDistance width height boids boid)
                                         )
+                                        |> V2.scale 0.1
                                     ]
                                         |> vecSum
                                         |> (\v ->
-                                                if V2.length v / time <= defaultMaxSpeed then
+                                                if V2.length v <= defaultMaxSpeed then
                                                     v
                                                 else
-                                                    V2.normalize v
+                                                    V2.scale defaultMaxSpeed (V2.normalize v)
                                            )
 
                                 newPos =
@@ -101,7 +102,7 @@ avoidOtherBoids width height boids boid =
     boid
         |> getNearbyBoids defaultBoidRad width height boids
         |> List.map (\b -> V2.sub boid.pos b.pos)
-        |> vecAvg
+        |> vecSum
 
 
 centerOfMassVec : Float -> Float -> List Boid -> Boid -> Vec2
@@ -109,9 +110,9 @@ centerOfMassVec width height boids boid =
     boid
         |> getNearbyBoids defaultSightDistance width height boids
         |> List.map .pos
-        |> vecAvg
+        |> vecSum
         |> (\p -> V2.sub p boid.pos)
-        |> V2.scale 0.01
+        |> V2.scale 0.0001
 
 
 getNearbyBoids : Float -> Float -> Float -> List Boid -> Boid -> List Boid
