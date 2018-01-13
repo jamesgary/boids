@@ -1,19 +1,30 @@
 module View exposing (view)
 
 import Color
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (class, style)
+import Html exposing (Html, div, h1, input, label, text)
+import Html.Attributes exposing (class, defaultValue, style)
 import Math.Vector2 as V2 exposing (Vec2, getX, getY, vec2)
 import Types exposing (..)
 
 
 view : Model -> Html Msg
 view { boids, width, height } =
-    div [ class "boids" ]
-        (boids
-            |> List.map (drawBoid width height)
-            |> List.concat
-        )
+    div [ class "container" ]
+        [ div [ class "boids" ]
+            (boids
+                |> List.map (drawBoid width height)
+                |> List.concat
+            )
+        , div [ class "config" ]
+            [ h1 [] [ text "Boids" ]
+            , div [ class "config-item" ]
+                [ label []
+                    [ text "Max Speed"
+                    , input [ defaultValue "420" ] []
+                    ]
+                ]
+            ]
+        ]
 
 
 drawBoid : Float -> Float -> Boid -> List (Html Msg)

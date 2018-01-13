@@ -192,3 +192,4 @@ wrap max val =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     AnimationFrame.diffs Tick
+        |> always Sub.none
