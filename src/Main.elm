@@ -1,9 +1,11 @@
 module Main exposing (main)
 
 import AnimationFrame
+import Color
 import Html exposing (Html)
 import Math.Vector2 as V2 exposing (Vec2, getX, getY, vec2)
 import Random
+import Random.Extra
 import Time exposing (Time)
 import Types exposing (..)
 import View exposing (view)
@@ -37,18 +39,20 @@ init { timestamp, width, height } =
 
 boidGenerator : Float -> Float -> Random.Generator Boid
 boidGenerator width height =
-    Random.map3
-        (\x y a ->
+    Random.map4
+        (\x y a color ->
             { pos = vec2 x y
             , vel =
                 ( defaultSpeed, turns a )
                     |> fromPolar
                     |> V2.fromTuple
+            , color = color |> Maybe.withDefault Color.white
             }
         )
         (Random.float 0 width)
         (Random.float 0 height)
         (Random.float 0 1)
+        (Random.Extra.sample niceColors)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -57,11 +61,101 @@ update msg ({ boids, width, height } as model) =
         Tick time ->
             ( { model
                 | boids =
-                    List.map (applyVel time >> wrapBoid width height)
+                    List.map
+                        (\boid ->
+                            let
+                                newVel =
+                                    [ boid.vel
+                                    , centerOfMassVec width height boids boid
+                                    , avoidOtherBoids width height boids boid
+                                    , vecAvg
+                                        (List.map .vel
+                                            (getNearbyBoids defaultSightDistance width height boids boid)
+                                        )
+                                    ]
+                                        |> vecSum
+                                        |> (\v ->
+                                                if V2.length v / time <= defaultMaxSpeed then
+                                                    v
+                                                else
+                                                    V2.normalize v
+                                           )
+
+                                newPos =
+                                    V2.add boid.pos (V2.scale time newVel)
+                            in
+                            { boid
+                                | vel = newVel
+                                , pos = newPos
+                            }
+                                |> wrapBoid width height
+                        )
                         boids
               }
             , Cmd.none
             )
+
+
+avoidOtherBoids : Float -> Float -> List Boid -> Boid -> Vec2
+avoidOtherBoids width height boids boid =
+    boid
+        |> getNearbyBoids defaultBoidRad width height boids
+        |> List.map (\b -> V2.sub boid.pos b.pos)
+        |> vecAvg
+
+
+centerOfMassVec : Float -> Float -> List Boid -> Boid -> Vec2
+centerOfMassVec width height boids boid =
+    boid
+        |> getNearbyBoids defaultSightDistance width height boids
+        |> List.map .pos
+        |> vecAvg
+        |> (\p -> V2.sub p boid.pos)
+        |> V2.scale 0.01
+
+
+getNearbyBoids : Float -> Float -> Float -> List Boid -> Boid -> List Boid
+getNearbyBoids maxDist width height boids boid =
+    let
+        ( x, y ) =
+            boid.pos
+                |> V2.toTuple
+    in
+    boids
+        |> List.filter
+            (\b ->
+                if b == boid then
+                    False
+                else
+                    let
+                        ( x_, y_ ) =
+                            b.pos
+                                |> V2.toTuple
+
+                        dx =
+                            abs (x - x_)
+                                |> (\dx ->
+                                        if dx > width / 2 then
+                                            width - dx
+                                        else
+                                            dx
+                                   )
+
+                        dy =
+                            abs (y - y_)
+                                |> (\dy ->
+                                        if dy > height / 2 then
+                                            width - dy
+                                        else
+                                            dy
+                                   )
+
+                        dist =
+                            sqrt (dx ^ 2 + dy ^ 2)
+                    in
+                    dist <= maxDist
+            )
+        |> Debug.log "hmm"
 
 
 applyVel : Time -> Boid -> Boid
