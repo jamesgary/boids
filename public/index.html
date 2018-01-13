@@ -8,10 +8,35 @@
   <body>
     <script src="./js/main.js"></script>
     <script>
-      var app = Elm.Main.fullscreen({
-        timestamp: Date.now(),
-        width: window.innerWidth,
-        height: window.innerHeight
+      var config = localStorage.getItem("boids:config");
+      if (config) {
+        try {
+          config = JSON.parse(config);
+        } catch (e) {
+          config = null;
+        }
+      }
+
+      var app;
+      try {
+        var app = Elm.Main.fullscreen({
+            timestamp: Date.now(),
+            width: window.innerWidth,
+            height: window.innerHeight,
+            config: config,
+        });
+      } catch (e) {
+        // probably have outdated config, so reset the config
+        var app = Elm.Main.fullscreen({
+            timestamp: Date.now(),
+            width: window.innerWidth,
+            height: window.innerHeight,
+            config: null,
+        });
+      }
+
+      app.ports.saveConfig.subscribe(function(config) {
+        localStorage.setItem("boids:config", JSON.stringify(config));
       });
     </script>
   </body>

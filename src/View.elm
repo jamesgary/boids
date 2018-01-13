@@ -1,14 +1,15 @@
 module View exposing (view)
 
 import Color
-import Html exposing (Html, div, h1, input, label, text)
+import Html exposing (Html, div, h1, h2, input, label, text)
 import Html.Attributes exposing (class, defaultValue, style)
+import Html.Events exposing (onInput)
 import Math.Vector2 as V2 exposing (Vec2, getX, getY, vec2)
 import Types exposing (..)
 
 
 view : Model -> Html Msg
-view { boids, width, height } =
+view { boids, width, height, config } =
     div [ class "container" ]
         [ div [ class "boids" ]
             (boids
@@ -20,7 +21,34 @@ view { boids, width, height } =
             , div [ class "config-item" ]
                 [ label []
                     [ text "Max Speed"
-                    , input [ defaultValue "420" ] []
+                    , input
+                        [ defaultValue (toString config.maxSpeed)
+                        , onInput ChangeMaxSpeed
+                        ]
+                        []
+                    ]
+                ]
+            , h2 [] [ text "Rule 1: Fly towards center of mass" ]
+            , div [ class "config-item" ]
+                [ label []
+                    [ text "Cohesion"
+                    , input
+                        [ defaultValue (toString config.cohesion)
+                        , onInput ChangeCohesion
+                        ]
+                        []
+                    ]
+                ]
+            , h2 [] [ text "Rule 2: Avoid collisions" ]
+            , h2 [] [ text "Rule 3: Match velocity" ]
+            , div [ class "config-item" ]
+                [ label []
+                    [ text "Alignment"
+                    , input
+                        [ defaultValue (toString config.alignment)
+                        , onInput ChangeAlignment
+                        ]
+                        []
                     ]
                 ]
             ]

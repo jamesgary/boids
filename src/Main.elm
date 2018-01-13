@@ -4,6 +4,7 @@ import AnimationFrame
 import Color
 import Html exposing (Html)
 import Math.Vector2 as V2 exposing (Vec2, getX, getY, vec2)
+import Ports exposing (saveConfig)
 import Random
 import Random.Extra
 import Time exposing (Time)
@@ -21,7 +22,7 @@ main =
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { timestamp, width, height } =
+init { config, timestamp, width, height } =
     let
         ( boids, seed ) =
             boidGenerator width height
@@ -32,6 +33,13 @@ init { timestamp, width, height } =
       , width = width
       , height = height
       , seed = seed
+      , config =
+            case config of
+                Just c ->
+                    c
+
+                Nothing ->
+                    defaultConfig
       }
     , Cmd.none
     )
@@ -56,7 +64,7 @@ boidGenerator width height =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ boids, width, height } as model) =
+update msg ({ boids, width, height, config } as model) =
     case msg of
         Tick time ->
             ( { model
@@ -66,20 +74,20 @@ update msg ({ boids, width, height } as model) =
                             let
                                 newVel =
                                     [ boid.vel
-                                    , centerOfMassVec width height boids boid
+                                    , centerOfMassVec config width height boids boid
                                     , avoidOtherBoids width height boids boid
                                     , vecAvg
                                         (List.map .vel
                                             (getNearbyBoids defaultSightDistance width height boids boid)
                                         )
-                                        |> V2.scale 0.1
+                                        |> V2.scale config.alignment
                                     ]
                                         |> vecSum
                                         |> (\v ->
-                                                if V2.length v <= defaultMaxSpeed then
+                                                if V2.length v <= config.maxSpeed then
                                                     v
                                                 else
-                                                    V2.scale defaultMaxSpeed (V2.normalize v)
+                                                    V2.scale config.maxSpeed (V2.normalize v)
                                            )
 
                                 newPos =
@@ -96,6 +104,27 @@ update msg ({ boids, width, height } as model) =
             , Cmd.none
             )
 
+        ChangeMaxSpeed inputStr ->
+            let
+                newConfig =
+                    { config | maxSpeed = String.toFloat inputStr |> Result.withDefault config.maxSpeed }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
+        ChangeCohesion inputStr ->
+            let
+                newConfig =
+                    { config | cohesion = String.toFloat inputStr |> Result.withDefault config.maxSpeed }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
+        ChangeAlignment inputStr ->
+            let
+                newConfig =
+                    { config | alignment = String.toFloat inputStr |> Result.withDefault config.alignment }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
 
 avoidOtherBoids : Float -> Float -> List Boid -> Boid -> Vec2
 avoidOtherBoids width height boids boid =
@@ -105,14 +134,18 @@ avoidOtherBoids width height boids boid =
         |> vecSum
 
 
-centerOfMassVec : Float -> Float -> List Boid -> Boid -> Vec2
-centerOfMassVec width height boids boid =
+
+--|> V2.scale 0.1
+
+
+centerOfMassVec : Config -> Float -> Float -> List Boid -> Boid -> Vec2
+centerOfMassVec config width height boids boid =
     boid
         |> getNearbyBoids defaultSightDistance width height boids
         |> List.map .pos
         |> vecSum
         |> (\p -> V2.sub p boid.pos)
-        |> V2.scale 0.0001
+        |> V2.scale config.cohesion
 
 
 getNearbyBoids : Float -> Float -> Float -> List Boid -> Boid -> List Boid
@@ -156,7 +189,6 @@ getNearbyBoids maxDist width height boids boid =
                     in
                     dist <= maxDist
             )
-        |> Debug.log "hmm"
 
 
 applyVel : Time -> Boid -> Boid
@@ -192,4 +224,7 @@ wrap max val =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     AnimationFrame.diffs Tick
-        |> always Sub.none
+
+
+
+--|> always Sub.none

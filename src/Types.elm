@@ -6,6 +6,15 @@ import Random
 import Time exposing (Time)
 
 
+type alias Model =
+    { boids : List Boid
+    , seed : Random.Seed
+    , width : Float
+    , height : Float
+    , config : Config
+    }
+
+
 type alias Boid =
     { pos : Vec2
     , vel : Vec2
@@ -13,22 +22,32 @@ type alias Boid =
     }
 
 
-type alias Model =
-    { boids : List Boid
-    , seed : Random.Seed
-    , width : Float
-    , height : Float
+type alias Config =
+    { maxSpeed : Float
+    , cohesion : Float
+    , alignment : Float
+    }
+
+
+defaultConfig =
+    { maxSpeed = 0.3
+    , cohesion = 0.0001
+    , alignment = 0.1
     }
 
 
 type Msg
     = Tick Time
+    | ChangeMaxSpeed String
+    | ChangeCohesion String
+    | ChangeAlignment String
 
 
 type alias Flags =
     { timestamp : Int
     , width : Float
     , height : Float
+    , config : Maybe Config
     }
 
 
@@ -54,10 +73,6 @@ defaultBoidRad =
 
 defaultSpeed =
     0.3
-
-
-defaultMaxSpeed =
-    defaultSpeed
 
 
 defaultNumBoids =
