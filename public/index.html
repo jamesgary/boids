@@ -23,7 +23,7 @@
             timestamp: Date.now(),
             width: window.innerWidth,
             height: window.innerHeight,
-            config: config,
+            maybeConfig: config,
         });
       } catch (e) {
         // probably have outdated config, so reset the config
@@ -31,7 +31,7 @@
             timestamp: Date.now(),
             width: window.innerWidth,
             height: window.innerHeight,
-            config: null,
+            maybeConfig: null,
         });
       }
 

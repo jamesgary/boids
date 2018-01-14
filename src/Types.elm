@@ -24,15 +24,19 @@ type alias Boid =
 
 type alias Config =
     { maxSpeed : Float
+    , numBoids : Int
     , cohesion : Float
     , alignment : Float
+    , boidRadius : Float
     }
 
 
 defaultConfig =
     { maxSpeed = 0.3
+    , numBoids = 10
     , cohesion = 0.0001
     , alignment = 0.1
+    , boidRadius = 20
     }
 
 
@@ -41,13 +45,14 @@ type Msg
     | ChangeMaxSpeed String
     | ChangeCohesion String
     | ChangeAlignment String
+    | ChangeNumBoids String
 
 
 type alias Flags =
     { timestamp : Int
     , width : Float
     , height : Float
-    , config : Maybe Config
+    , maybeConfig : Maybe Config
     }
 
 
@@ -73,10 +78,6 @@ defaultBoidRad =
 
 defaultSpeed =
     0.3
-
-
-defaultNumBoids =
-    10
 
 
 boidViewRad =

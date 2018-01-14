@@ -22,24 +22,26 @@ main =
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { config, timestamp, width, height } =
+init { maybeConfig, timestamp, width, height } =
     let
+        config =
+            case maybeConfig of
+                Just c ->
+                    c
+
+                Nothing ->
+                    defaultConfig
+
         ( boids, seed ) =
             boidGenerator width height
-                |> Random.list defaultNumBoids
+                |> Random.list config.numBoids
                 |> (\gen -> Random.step gen (Random.initialSeed timestamp))
     in
     ( { boids = boids
       , width = width
       , height = height
       , seed = seed
-      , config =
-            case config of
-                Just c ->
-                    c
-
-                Nothing ->
-                    defaultConfig
+      , config = config
       }
     , Cmd.none
     )
@@ -64,7 +66,7 @@ boidGenerator width height =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ boids, width, height, config } as model) =
+update msg ({ boids, width, height, seed, config } as model) =
     case msg of
         Tick time ->
             ( { model
@@ -104,6 +106,7 @@ update msg ({ boids, width, height, config } as model) =
             , Cmd.none
             )
 
+        -- TODO some way to DRY these up?
         ChangeMaxSpeed inputStr ->
             let
                 newConfig =
@@ -124,6 +127,29 @@ update msg ({ boids, width, height, config } as model) =
                     { config | alignment = String.toFloat inputStr |> Result.withDefault config.alignment }
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
+
+        ChangeNumBoids inputStr ->
+            let
+                numBoids =
+                    String.toInt inputStr |> Result.withDefault config.numBoids
+
+                ( newBoids, newSeed ) =
+                    if numBoids > List.length boids then
+                        boidGenerator width height
+                            |> Random.list (numBoids - List.length boids)
+                            |> (\gen -> Random.step gen seed)
+                    else
+                        ( List.drop (List.length boids - numBoids) boids, seed )
+
+                newConfig =
+                    { config | numBoids = String.toInt inputStr |> Result.withDefault config.numBoids }
+            in
+            { model
+                | config = newConfig
+                , boids = newBoids
+                , seed = newSeed
+            }
+                ! [ saveConfig newConfig ]
 
 
 avoidOtherBoids : Float -> Float -> List Boid -> Boid -> Vec2

@@ -18,39 +18,27 @@ view { boids, width, height, config } =
             )
         , div [ class "config" ]
             [ h1 [] [ text "Boids" ]
-            , div [ class "config-item" ]
-                [ label []
-                    [ text "Max Speed"
-                    , input
-                        [ defaultValue (toString config.maxSpeed)
-                        , onInput ChangeMaxSpeed
-                        ]
-                        []
-                    ]
-                ]
+            , configInput "Max Speed" config.maxSpeed ChangeMaxSpeed
+            , configInput "# of Boids" config.numBoids ChangeNumBoids
             , h2 [] [ text "Rule 1: Fly towards center of mass" ]
-            , div [ class "config-item" ]
-                [ label []
-                    [ text "Cohesion"
-                    , input
-                        [ defaultValue (toString config.cohesion)
-                        , onInput ChangeCohesion
-                        ]
-                        []
-                    ]
-                ]
+            , configInput "Cohesion" config.cohesion ChangeCohesion
             , h2 [] [ text "Rule 2: Avoid collisions" ]
             , h2 [] [ text "Rule 3: Match velocity" ]
-            , div [ class "config-item" ]
-                [ label []
-                    [ text "Alignment"
-                    , input
-                        [ defaultValue (toString config.alignment)
-                        , onInput ChangeAlignment
-                        ]
-                        []
-                    ]
+            , configInput "Alignment" config.alignment ChangeAlignment
+            ]
+        ]
+
+
+configInput : String -> number -> (String -> Msg) -> Html Msg
+configInput title val msg =
+    div [ class "config-item" ]
+        [ label []
+            [ text title
+            , input
+                [ defaultValue (toString val)
+                , onInput msg
                 ]
+                []
             ]
         ]
 
