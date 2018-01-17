@@ -2,7 +2,7 @@
 
 Inspired by...
 - [XnaBoids Video](https://www.youtube.com/watch?v=M028vafB0l8)
-- [Craig Reynolds Boids](http://www.red3d.com/cwr/boids/)
+- [Craig Reynolds' Boids](http://www.red3d.com/cwr/boids/)
 - [Conrad Parker's Boid Pseudocode](http://www.kfish.org/boids/pseudocode.html)
 
 To run...
