@@ -77,10 +77,10 @@ update msg ({ boids, width, height, seed, config } as model) =
                                 newVel =
                                     [ boid.vel
                                     , centerOfMassVec config width height boids boid
-                                    , avoidOtherBoids width height boids boid
+                                    , avoidOtherBoids config width height boids boid
                                     , vecAvg
                                         (List.map .vel
-                                            (getNearbyBoids defaultSightDistance width height boids boid)
+                                            (getNearbyBoids config.sightDist width height boids boid)
                                         )
                                         |> V2.scale config.alignment
                                     ]
@@ -110,21 +110,66 @@ update msg ({ boids, width, height, seed, config } as model) =
         ChangeMaxSpeed inputStr ->
             let
                 newConfig =
-                    { config | maxSpeed = String.toFloat inputStr |> Result.withDefault config.maxSpeed }
+                    { config
+                        | maxSpeed =
+                            String.toFloat inputStr
+                                |> Result.withDefault config.maxSpeed
+                    }
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
 
         ChangeCohesion inputStr ->
             let
                 newConfig =
-                    { config | cohesion = String.toFloat inputStr |> Result.withDefault config.maxSpeed }
+                    { config
+                        | cohesion =
+                            String.toFloat inputStr
+                                |> Result.withDefault config.maxSpeed
+                    }
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
 
         ChangeAlignment inputStr ->
             let
                 newConfig =
-                    { config | alignment = String.toFloat inputStr |> Result.withDefault config.alignment }
+                    { config
+                        | alignment =
+                            String.toFloat inputStr
+                                |> Result.withDefault config.alignment
+                    }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
+        ChangeBoidDiameter inputStr ->
+            let
+                newConfig =
+                    { config
+                        | boidDiameter =
+                            String.toFloat inputStr
+                                |> Result.withDefault config.boidDiameter
+                    }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
+        ChangePersonalSpace inputStr ->
+            let
+                newConfig =
+                    { config
+                        | personalSpace =
+                            String.toFloat inputStr
+                                |> Result.withDefault config.personalSpace
+                    }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
+        ChangeSightDist inputStr ->
+            let
+                newConfig =
+                    { config
+                        | sightDist =
+                            String.toFloat inputStr
+                                |> Result.withDefault config.sightDist
+                    }
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
 
@@ -151,27 +196,38 @@ update msg ({ boids, width, height, seed, config } as model) =
             }
                 ! [ saveConfig newConfig ]
 
+        ToggleSightDist ->
+            let
+                newConfig =
+                    { config | showSightDist = not config.showSightDist }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
 
-avoidOtherBoids : Float -> Float -> List Boid -> Boid -> Vec2
-avoidOtherBoids width height boids boid =
+
+avoidOtherBoids : Config -> Float -> Float -> List Boid -> Boid -> Vec2
+avoidOtherBoids { boidDiameter, personalSpace } width height boids boid =
     boid
-        |> getNearbyBoids defaultBoidRad width height boids
+        |> getNearbyBoids (boidDiameter + personalSpace) width height boids
         |> List.map (\b -> V2.sub boid.pos b.pos)
         |> vecSum
-
-
-
---|> V2.scale 0.1
+        |> V2.scale 0.001
 
 
 centerOfMassVec : Config -> Float -> Float -> List Boid -> Boid -> Vec2
 centerOfMassVec config width height boids boid =
-    boid
-        |> getNearbyBoids defaultSightDistance width height boids
-        |> List.map .pos
-        |> vecSum
-        |> (\p -> V2.sub p boid.pos)
-        |> V2.scale config.cohesion
+    let
+        collidingBoids =
+            boid
+                |> getNearbyBoids config.sightDist width height boids
+    in
+    if List.isEmpty collidingBoids then
+        boid.vel
+    else
+        collidingBoids
+            |> List.map .pos
+            |> vecAvg
+            |> (\p -> V2.sub p boid.pos)
+            |> V2.scale config.cohesion
 
 
 getNearbyBoids : Float -> Float -> Float -> List Boid -> Boid -> List Boid

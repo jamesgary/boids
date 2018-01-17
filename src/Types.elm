@@ -27,7 +27,10 @@ type alias Config =
     , numBoids : Int
     , cohesion : Float
     , alignment : Float
-    , boidRadius : Float
+    , boidDiameter : Float
+    , personalSpace : Float
+    , sightDist : Float
+    , showSightDist : Bool
     }
 
 
@@ -36,7 +39,10 @@ defaultConfig =
     , numBoids = 10
     , cohesion = 0.0001
     , alignment = 0.1
-    , boidRadius = 20
+    , boidDiameter = 30
+    , personalSpace = 10
+    , sightDist = 70
+    , showSightDist = False
     }
 
 
@@ -46,6 +52,10 @@ type Msg
     | ChangeCohesion String
     | ChangeAlignment String
     | ChangeNumBoids String
+    | ChangeBoidDiameter String
+    | ChangePersonalSpace String
+    | ChangeSightDist String
+    | ToggleSightDist
 
 
 type alias Flags =
@@ -72,17 +82,8 @@ vecAvg vList =
                 |> V2.scale (1 / toFloat length)
 
 
-defaultBoidRad =
-    50
-
-
 defaultSpeed =
     0.3
-
-
-boidViewRad =
-    -- body and beak
-    defaultBoidRad * 2
 
 
 defaultSightDistance =
