@@ -36,10 +36,11 @@ type alias Rule =
 
 
 type alias Config =
-    { maxSpeed : Float
-    , numBoids : Int
+    { numBoids : Int
     , boidDiameter : Float
     , vel : Float
+    , jerkiness : Float
+    , maxTurnRate : Float
 
     --
     , cohesion : Float
@@ -51,12 +52,13 @@ type alias Config =
 
 
 defaultConfig =
-    { maxSpeed = 0.3
-    , numBoids = 10
+    { numBoids = 30
+    , vel = 0.25
+    , boidDiameter = 40
+    , jerkiness = 0.5
+    , maxTurnRate = 0.05
     , cohesion = 0.0001
-    , vel = 0.5
     , alignment = 0.1
-    , boidDiameter = 30
     , personalSpace = 10
     , sightDist = 70
     , showSightDist = False
@@ -65,11 +67,13 @@ defaultConfig =
 
 type Msg
     = Tick Time
-    | ChangeMaxSpeed String
+    | ChangeVel String
     | ChangeCohesion String
     | ChangeAlignment String
     | ChangeNumBoids String
     | ChangeBoidDiameter String
+    | ChangeJerkiness String
+    | ChangeMaxTurnRate String
     | ChangePersonalSpace String
     | ChangeSightDist String
     | ToggleSightDist

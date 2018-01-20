@@ -70,18 +70,18 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg ({ boids, width, height, seed, config } as model) =
     case msg of
         Tick time ->
-            ( tick time model
+            ( tick (max (1000 / 60) time) model
             , Cmd.none
             )
 
         -- TODO some way to DRY these up?
-        ChangeMaxSpeed inputStr ->
+        ChangeVel inputStr ->
             let
                 newConfig =
                     { config
-                        | maxSpeed =
+                        | vel =
                             String.toFloat inputStr
-                                |> Result.withDefault config.maxSpeed
+                                |> Result.withDefault config.vel
                     }
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
@@ -92,7 +92,7 @@ update msg ({ boids, width, height, seed, config } as model) =
                     { config
                         | cohesion =
                             String.toFloat inputStr
-                                |> Result.withDefault config.maxSpeed
+                                |> Result.withDefault config.cohesion
                     }
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
@@ -141,6 +141,28 @@ update msg ({ boids, width, height, seed, config } as model) =
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
 
+        ChangeJerkiness inputStr ->
+            let
+                newConfig =
+                    { config
+                        | jerkiness =
+                            String.toFloat inputStr
+                                |> Result.withDefault config.jerkiness
+                    }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
+        ChangeMaxTurnRate inputStr ->
+            let
+                newConfig =
+                    { config
+                        | maxTurnRate =
+                            String.toFloat inputStr
+                                |> Result.withDefault config.maxTurnRate
+                    }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
         ChangeNumBoids inputStr ->
             let
                 numBoids =
@@ -176,19 +198,22 @@ tick : Time.Time -> Model -> Model
 tick time ({ width, height, config } as model) =
     let
         ( newBoids, newSeed ) =
-            List.foldl
+            List.foldr
                 (\boid ( boids, seed ) ->
                     let
-                        ( turningAccDelta, newSeed ) =
+                        ( newTurningAcc, newSeed ) =
+                            --( boid.turningAcc, seed )
                             Random.step
-                                (Random.float -0.1 0.1)
+                                (Random.float (-1 * config.jerkiness) config.jerkiness
+                                    |> Random.map
+                                        (\j ->
+                                            boid.turningAcc + j
+                                        )
+                                )
                                 seed
 
-                        newTurningAcc =
-                            boid.turningAcc + turningAccDelta
-
                         newAngle =
-                            boid.angle + (0.1 * cos (newTurningAcc * time))
+                            boid.angle + (config.maxTurnRate * cos (newTurningAcc * time))
 
                         newPos =
                             V2.add boid.pos
@@ -300,4 +325,5 @@ subscriptions model =
 
 
 
+--Time.every (Time.second * 5) Tick
 --|> always Sub.none

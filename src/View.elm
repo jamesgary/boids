@@ -21,16 +21,20 @@ view { boids, width, height, config } =
         , div [ class "config" ]
             [ h1 [] [ text "Boids" ]
             , configInput "# of Boids" config.numBoids ChangeNumBoids
-            , configInput "Max Speed" config.maxSpeed ChangeMaxSpeed
+            , configInput "Speed" config.vel ChangeVel
             , configInput "Boid Size" config.boidDiameter ChangeBoidDiameter
-            , configInput "Sight Range" config.sightDist ChangeSightDist
-            , configCheckbox "Show Sight Range" config.showSightDist ToggleSightDist
-            , h2 [] [ text "Rule 1: Fly towards center of mass" ]
-            , configInput "Cohesion" config.cohesion ChangeCohesion
-            , h2 [] [ text "Rule 2: Match velocity" ]
-            , configInput "Alignment" config.alignment ChangeAlignment
-            , h2 [] [ text "Rule 3: Avoid collisions" ]
-            , configInput "Personal Space" config.personalSpace ChangePersonalSpace
+            , h2 [] [ text "Rule 1: Wiggle!" ]
+            , configInput "Jerkiness" config.jerkiness ChangeJerkiness
+            , configInput "Max Turn Rate" config.maxTurnRate ChangeMaxTurnRate
+
+            --, configInput "Sight Range" config.sightDist ChangeSightDist
+            --, configCheckbox "Show Sight Range" config.showSightDist ToggleSightDist
+            --, h2 [] [ text "Rule 1: Fly towards center of mass" ]
+            --, configInput "Cohesion" config.cohesion ChangeCohesion
+            --, h2 [] [ text "Rule 2: Match velocity" ]
+            --, configInput "Alignment" config.alignment ChangeAlignment
+            --, h2 [] [ text "Rule 3: Avoid collisions" ]
+            --, configInput "Personal Space" config.personalSpace ChangePersonalSpace
             ]
         ]
 
