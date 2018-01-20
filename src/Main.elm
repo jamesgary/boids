@@ -68,49 +68,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg ({ boids, width, height, seed, config } as model) =
     case msg of
         Tick time ->
-            ( { model
-                | boids =
-                    List.map
-                        (\boid ->
-                            let
-                                --newVel =
-                                --    [ boid.vel
-                                --    , centerOfMassVec config width height boids boid
-                                --    , avoidOtherBoids config width height boids boid
-                                --    , vecAvg
-                                --        (List.map .vel
-                                --            (getNearbyBoids config.sightDist width height boids boid)
-                                --        )
-                                --        |> V2.scale config.alignment
-                                --    ]
-                                --        |> vecSum
-                                --        |> (\v ->
-                                --                if V2.length v <= config.maxSpeed then
-                                --                    v
-                                --                else
-                                --                    V2.scale config.maxSpeed (V2.normalize v)
-                                --           )
-                                newAngle =
-                                    boid.angle
-
-                                angleGenerator =
-                                    Random.float (degrees -10) (degrees 10)
-
-                                --Random.step seed
-                                newPos =
-                                    V2.add boid.pos
-                                        (fromPolar ( config.vel * time, boid.angle ) |> V2.fromTuple)
-
-                                --V2.add boid.pos (V2.scale time newVel)
-                            in
-                            { boid
-                                | angle = newAngle
-                                , pos = newPos
-                            }
-                                |> wrapBoid width height
-                        )
-                        boids
-              }
+            ( tick time model
             , Cmd.none
             )
 
@@ -212,17 +170,46 @@ update msg ({ boids, width, height, seed, config } as model) =
             { model | config = newConfig } ! [ saveConfig newConfig ]
 
 
-wiggle : Random.Seed -> Boid -> ( Boid, Random.Seed )
-wiggle seed boid =
-    ( boid, seed )
+tick : Time.Time -> Model -> Model
+tick time ({ width, height, config } as model) =
+    let
+        ( newBoids, newSeed ) =
+            List.foldl
+                (\boid ( boids, seed ) ->
+                    let
+                        ( newAngle, newSeed ) =
+                            wiggle time seed boid.angle
+
+                        newPos =
+                            V2.add boid.pos
+                                (fromPolar ( config.vel * time, newAngle ) |> V2.fromTuple)
+                    in
+                    ( ({ boid
+                        | angle = newAngle
+                        , pos = newPos
+                       }
+                        |> wrapBoid width height
+                      )
+                        :: boids
+                    , newSeed
+                    )
+                )
+                ( [], model.seed )
+                model.boids
+    in
+    { model
+        | boids =
+            newBoids
+        , seed = newSeed
+    }
 
 
-
---Random.step
---    (Random.float (degrees -10) (degrees 10))
---    seed
---    |> (\angle ->
---        )
+wiggle : Time.Time -> Random.Seed -> Angle -> ( Angle, Random.Seed )
+wiggle time seed angle =
+    Random.step
+        (Random.float (degrees -35) (degrees 35))
+        seed
+        |> (\( a, s ) -> ( a + angle, s ))
 
 
 getNearbyBoids : Float -> Float -> Float -> List Boid -> Boid -> List Boid
