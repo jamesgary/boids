@@ -143,16 +143,13 @@ drawBoid { boidDiameter } width height ({ pos } as boid) =
 
 
 drawBoidHelper : Boid -> Html Msg
-drawBoidHelper { pos, vel, color } =
+drawBoidHelper { pos, angle, color } =
     let
         translateVal =
             px (getX pos) ++ "," ++ px (getY pos)
 
         rotateVal =
-            vel
-                |> V2.toTuple
-                |> (\( x, y ) -> atan2 y x)
-                |> toString
+            angle |> toString
 
         colorStr =
             color

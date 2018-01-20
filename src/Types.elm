@@ -15,19 +15,34 @@ type alias Model =
     }
 
 
+type alias Angle =
+    Float
+
+
 type alias Boid =
     { pos : Vec2
-    , vel : Vec2
+    , angle : Angle
     , color : Color
+    }
+
+
+type alias Rule =
+    { name : String
+    , weight : Float
+    , sightRange : Float
+    , behavior : List Boid -> Boid -> Boid
     }
 
 
 type alias Config =
     { maxSpeed : Float
     , numBoids : Int
+    , boidDiameter : Float
+    , vel : Float
+
+    --
     , cohesion : Float
     , alignment : Float
-    , boidDiameter : Float
     , personalSpace : Float
     , sightDist : Float
     , showSightDist : Bool
@@ -38,6 +53,7 @@ defaultConfig =
     { maxSpeed = 0.3
     , numBoids = 10
     , cohesion = 0.0001
+    , vel = 0.5
     , alignment = 0.1
     , boidDiameter = 30
     , personalSpace = 10

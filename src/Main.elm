@@ -1,5 +1,7 @@
 module Main exposing (main)
 
+--import Torus exposing (..)
+
 import AnimationFrame
 import Color
 import Html exposing (Html)
@@ -52,16 +54,13 @@ boidGenerator width height =
     Random.map4
         (\x y a color ->
             { pos = vec2 x y
-            , vel =
-                ( defaultSpeed, turns a )
-                    |> fromPolar
-                    |> V2.fromTuple
+            , angle = a
             , color = color |> Maybe.withDefault Color.white
             }
         )
         (Random.float 0 width)
         (Random.float 0 height)
-        (Random.float 0 1)
+        (Random.float 0 (turns 1))
         (Random.Extra.sample niceColors)
 
 
@@ -74,29 +73,38 @@ update msg ({ boids, width, height, seed, config } as model) =
                     List.map
                         (\boid ->
                             let
-                                newVel =
-                                    [ boid.vel
-                                    , centerOfMassVec config width height boids boid
-                                    , avoidOtherBoids config width height boids boid
-                                    , vecAvg
-                                        (List.map .vel
-                                            (getNearbyBoids config.sightDist width height boids boid)
-                                        )
-                                        |> V2.scale config.alignment
-                                    ]
-                                        |> vecSum
-                                        |> (\v ->
-                                                if V2.length v <= config.maxSpeed then
-                                                    v
-                                                else
-                                                    V2.scale config.maxSpeed (V2.normalize v)
-                                           )
+                                --newVel =
+                                --    [ boid.vel
+                                --    , centerOfMassVec config width height boids boid
+                                --    , avoidOtherBoids config width height boids boid
+                                --    , vecAvg
+                                --        (List.map .vel
+                                --            (getNearbyBoids config.sightDist width height boids boid)
+                                --        )
+                                --        |> V2.scale config.alignment
+                                --    ]
+                                --        |> vecSum
+                                --        |> (\v ->
+                                --                if V2.length v <= config.maxSpeed then
+                                --                    v
+                                --                else
+                                --                    V2.scale config.maxSpeed (V2.normalize v)
+                                --           )
+                                newAngle =
+                                    boid.angle
 
+                                angleGenerator =
+                                    Random.float (degrees -10) (degrees 10)
+
+                                --Random.step seed
                                 newPos =
-                                    V2.add boid.pos (V2.scale time newVel)
+                                    V2.add boid.pos
+                                        (fromPolar ( config.vel * time, boid.angle ) |> V2.fromTuple)
+
+                                --V2.add boid.pos (V2.scale time newVel)
                             in
                             { boid
-                                | vel = newVel
+                                | angle = newAngle
                                 , pos = newPos
                             }
                                 |> wrapBoid width height
@@ -204,30 +212,17 @@ update msg ({ boids, width, height, seed, config } as model) =
             { model | config = newConfig } ! [ saveConfig newConfig ]
 
 
-avoidOtherBoids : Config -> Float -> Float -> List Boid -> Boid -> Vec2
-avoidOtherBoids { boidDiameter, personalSpace } width height boids boid =
-    boid
-        |> getNearbyBoids (boidDiameter + personalSpace) width height boids
-        |> List.map (\b -> V2.sub boid.pos b.pos)
-        |> vecSum
-        |> V2.scale 0.001
+wiggle : Random.Seed -> Boid -> ( Boid, Random.Seed )
+wiggle seed boid =
+    ( boid, seed )
 
 
-centerOfMassVec : Config -> Float -> Float -> List Boid -> Boid -> Vec2
-centerOfMassVec config width height boids boid =
-    let
-        collidingBoids =
-            boid
-                |> getNearbyBoids config.sightDist width height boids
-    in
-    if List.isEmpty collidingBoids then
-        boid.vel
-    else
-        collidingBoids
-            |> List.map .pos
-            |> vecAvg
-            |> (\p -> V2.sub p boid.pos)
-            |> V2.scale config.cohesion
+
+--Random.step
+--    (Random.float (degrees -10) (degrees 10))
+--    seed
+--    |> (\angle ->
+--        )
 
 
 getNearbyBoids : Float -> Float -> Float -> List Boid -> Boid -> List Boid
@@ -244,38 +239,44 @@ getNearbyBoids maxDist width height boids boid =
                     False
                 else
                     let
-                        ( x_, y_ ) =
-                            b.pos
-                                |> V2.toTuple
-
-                        dx =
-                            abs (x - x_)
-                                |> (\dx ->
-                                        if dx > width / 2 then
-                                            width - dx
-                                        else
-                                            dx
-                                   )
-
-                        dy =
-                            abs (y - y_)
-                                |> (\dy ->
-                                        if dy > height / 2 then
-                                            width - dy
-                                        else
-                                            dy
-                                   )
-
                         dist =
-                            sqrt (dx ^ 2 + dy ^ 2)
+                            getDistBetweenBoids width height boid b
+                                |> V2.length
                     in
                     dist <= maxDist
             )
 
 
-applyVel : Time -> Boid -> Boid
-applyVel time ({ pos, vel } as boid) =
-    { boid | pos = V2.add pos (V2.scale time vel) }
+getDistBetweenBoids : Float -> Float -> Boid -> Boid -> Vec2
+getDistBetweenBoids width height b1 b2 =
+    let
+        ( x1, y1 ) =
+            b1.pos
+                |> V2.toTuple
+
+        ( x2, y2 ) =
+            b2.pos
+                |> V2.toTuple
+
+        dx =
+            abs (x1 - x2)
+                |> (\dx ->
+                        if dx > width / 2 then
+                            width - dx
+                        else
+                            dx
+                   )
+
+        dy =
+            abs (y1 - y2)
+                |> (\dy ->
+                        if dy > height / 2 then
+                            width - dy
+                        else
+                            dy
+                   )
+    in
+    V2.fromTuple ( dx, dy )
 
 
 wrapBoid : Float -> Float -> Boid -> Boid
