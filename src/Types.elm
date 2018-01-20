@@ -22,6 +22,7 @@ type alias Angle =
 type alias Boid =
     { pos : Vec2
     , angle : Angle
+    , turningAcc : Angle
     , color : Color
     }
 

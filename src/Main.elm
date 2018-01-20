@@ -51,16 +51,18 @@ init { maybeConfig, timestamp, width, height } =
 
 boidGenerator : Float -> Float -> Random.Generator Boid
 boidGenerator width height =
-    Random.map4
-        (\x y a color ->
+    Random.map5
+        (\x y a ta color ->
             { pos = vec2 x y
             , angle = a
+            , turningAcc = ta
             , color = color |> Maybe.withDefault Color.white
             }
         )
         (Random.float 0 width)
         (Random.float 0 height)
         (Random.float 0 (turns 1))
+        (Random.float 0 1)
         (Random.Extra.sample niceColors)
 
 
@@ -177,15 +179,24 @@ tick time ({ width, height, config } as model) =
             List.foldl
                 (\boid ( boids, seed ) ->
                     let
-                        ( newAngle, newSeed ) =
-                            wiggle time seed boid.angle
+                        ( turningAccDelta, newSeed ) =
+                            Random.step
+                                (Random.float -0.1 0.1)
+                                seed
+
+                        newTurningAcc =
+                            boid.turningAcc + turningAccDelta
+
+                        newAngle =
+                            boid.angle + (0.1 * cos (newTurningAcc * time))
 
                         newPos =
                             V2.add boid.pos
                                 (fromPolar ( config.vel * time, newAngle ) |> V2.fromTuple)
                     in
                     ( ({ boid
-                        | angle = newAngle
+                        | turningAcc = newTurningAcc
+                        , angle = newAngle
                         , pos = newPos
                        }
                         |> wrapBoid width height
@@ -202,14 +213,6 @@ tick time ({ width, height, config } as model) =
             newBoids
         , seed = newSeed
     }
-
-
-wiggle : Time.Time -> Random.Seed -> Angle -> ( Angle, Random.Seed )
-wiggle time seed angle =
-    Random.step
-        (Random.float (degrees -35) (degrees 35))
-        seed
-        |> (\( a, s ) -> ( a + angle, s ))
 
 
 getNearbyBoids : Float -> Float -> Float -> List Boid -> Boid -> List Boid
