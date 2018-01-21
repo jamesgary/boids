@@ -2,6 +2,7 @@ module Types exposing (..)
 
 import Color exposing (Color)
 import Math.Vector2 as V2 exposing (Vec2)
+import Mouse
 import Random
 import Time exposing (Time)
 import Torus exposing (Torus)
@@ -12,6 +13,7 @@ type alias Model =
     , seed : Random.Seed
     , torus : Torus
     , config : Config
+    , mousePos : Maybe Vec2
     }
 
 
@@ -55,6 +57,9 @@ type alias Config =
     , separationWeight : Float
     , personalSpace : Float
 
+    -- rule 4: follow
+    , followWeight : Float
+
     -- etc
     , paused : Bool
 
@@ -84,6 +89,9 @@ defaultConfig =
     , separationWeight = 10
     , personalSpace = 60
 
+    -- rule 4: follow
+    , followWeight = 10
+
     -- etc
     , paused = False
 
@@ -110,9 +118,12 @@ type Msg
       -- rule 3 : separation
     | ChangeSeparationWeight String
     | ChangePersonalSpace String
+      -- rule 3 : separation
+    | ChangeFollowWeight String
       -- etc
     | ResetDefaults
     | TogglePause
+    | MouseMoves Mouse.Position
       -- unused
     | ChangeJerkiness String
     | ChangeMaxTurnRate String
@@ -140,6 +151,13 @@ vecAvg vList =
         length ->
             vecSum vList
                 |> V2.scale (1 / toFloat length)
+
+
+vecAngle : Vec2 -> Angle
+vecAngle v =
+    v
+        |> V2.toTuple
+        |> (\( x, y ) -> atan2 y x)
 
 
 defaultSpeed =

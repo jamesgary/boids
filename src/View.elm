@@ -35,6 +35,8 @@ view { boids, torus, config } =
             , h2 [] [ text "Rule 3: Separation" ]
             , configInput "Separation Weight" config.separationWeight ChangeSeparationWeight
             , configInput "Personal Space" config.personalSpace ChangePersonalSpace
+            , h2 [] [ text "Rule 4: Follow Mouse" ]
+            , configInput "Follow Weight" config.followWeight ChangeFollowWeight
 
             -- gotta refresh to see new form values (shrug)
             , button [ onClick ResetDefaults ] [ text "Reset Defaults" ]

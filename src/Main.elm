@@ -4,6 +4,7 @@ import AnimationFrame
 import Color
 import Html exposing (Html)
 import Math.Vector2 as V2 exposing (Vec2, vec2)
+import Mouse
 import Ports exposing (saveConfig)
 import Random
 import Random.Extra
@@ -42,6 +43,7 @@ init { maybeConfig, timestamp, width, height } =
       , torus = Torus width height
       , seed = seed
       , config = config
+      , mousePos = Nothing
       }
     , Cmd.none
     )
@@ -182,6 +184,17 @@ update msg ({ boids, torus, seed, config } as model) =
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
 
+        ChangeFollowWeight inputStr ->
+            let
+                newConfig =
+                    { config
+                        | followWeight =
+                            String.toFloat inputStr
+                                |> Result.withDefault config.followWeight
+                    }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
         TogglePause ->
             let
                 newConfig =
@@ -233,9 +246,21 @@ update msg ({ boids, torus, seed, config } as model) =
                 |> Tuple.first
                 |> (\model -> model ! [ saveConfig model.config ])
 
+        MouseMoves mousePos ->
+            { model
+                | mousePos =
+                    mousePos
+                        |> (\{ x, y } ->
+                                ( toFloat x, model.torus.height - toFloat y )
+                                    |> V2.fromTuple
+                                    |> Just
+                           )
+            }
+                ! []
+
 
 tick : Time.Time -> Model -> Model
-tick time ({ torus, config } as model) =
+tick time ({ torus, config, mousePos } as model) =
     let
         ( newBoids, newSeed ) =
             List.foldr
@@ -296,6 +321,14 @@ tick time ({ torus, config } as model) =
                                             )
                                    )
 
+                        ( targetAngleForFollow, followWeight ) =
+                            case mousePos of
+                                Nothing ->
+                                    ( boid.angle, 0 )
+
+                                Just mp ->
+                                    ( V2.sub mp boid.pos |> vecAngle, config.followWeight )
+
                         newAngle =
                             vecAvg
                                 [ V2.fromTuple
@@ -320,6 +353,12 @@ tick time ({ torus, config } as model) =
                                     (fromPolar
                                         ( separationWeight
                                         , targetAngleForSeparation
+                                        )
+                                    )
+                                , V2.fromTuple
+                                    (fromPolar
+                                        ( followWeight
+                                        , targetAngleForFollow
                                         )
                                     )
                                 ]
@@ -380,7 +419,10 @@ subscriptions model =
     if model.config.paused then
         Sub.none
     else
-        AnimationFrame.diffs Tick
+        Sub.batch
+            [ AnimationFrame.diffs Tick
+            , Mouse.moves MouseMoves
+            ]
 
 
 
