@@ -46,6 +46,9 @@ type alias Config =
     -- rule 1: cohesion
     , cohesionWeight : Float
 
+    -- rule 3: separation
+    , separationWeight : Float
+
     -- etc
     , jerkiness : Float
     , maxTurnRate : Float
@@ -69,6 +72,9 @@ defaultConfig =
     , sightDist = 250
     , showSightDist = False
 
+    -- rule 3 separation
+    , separationWeight = 0.1
+
     -- etc
     , maxTurnRate = 0.05
     , jerkiness = 0.5
@@ -89,6 +95,8 @@ type Msg
     | ChangeCohesion String
     | ChangeSightDist String
     | ToggleSightDist
+      -- rule 3 : separation
+    | ChangeSeparationWeight String
       -- etc
     | ChangeAlignment String
     | ChangeJerkiness String

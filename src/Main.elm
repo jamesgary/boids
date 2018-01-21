@@ -171,6 +171,17 @@ update msg ({ boids, torus, seed, config } as model) =
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
 
+        ChangeSeparationWeight inputStr ->
+            let
+                newConfig =
+                    { config
+                        | separationWeight =
+                            String.toFloat inputStr
+                                |> Result.withDefault config.separationWeight
+                    }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
         ChangeNumBoids inputStr ->
             let
                 numBoids =
@@ -239,23 +250,41 @@ tick time ({ torus, config } as model) =
                                                 |> (\( x, y ) -> atan2 y x)
                                    )
 
-                        targetAngleAndWeightForSeparation =
+                        ( targetAngleForSeparation, separationWeight ) =
                             getNearbyBoids config.personalSpace torus model.boids boid
                                 |> List.map Tuple.second
                                 |> (\list ->
                                         if List.isEmpty list then
-                                            0
+                                            ( boid.angle, 0 )
                                         else
-                                            list
+                                            ( list
                                                 |> vecSum
                                                 |> V2.toTuple
                                                 |> (\( x, y ) -> atan2 -y -x)
+                                            , config.separationWeight
+                                            )
                                    )
 
                         newAngle =
                             vecAvg
-                                [ V2.fromTuple (fromPolar ( config.momentumWeight, boid.angle ))
-                                , V2.fromTuple (fromPolar ( config.cohesionWeight, targetAngleForCohesion ))
+                                [ V2.fromTuple
+                                    (fromPolar
+                                        ( config.momentumWeight
+                                        , boid.angle
+                                        )
+                                    )
+                                , V2.fromTuple
+                                    (fromPolar
+                                        ( config.cohesionWeight
+                                        , targetAngleForCohesion
+                                        )
+                                    )
+                                , V2.fromTuple
+                                    (fromPolar
+                                        ( separationWeight
+                                        , targetAngleForSeparation
+                                        )
+                                    )
                                 ]
                                 |> V2.toTuple
                                 |> toPolar
