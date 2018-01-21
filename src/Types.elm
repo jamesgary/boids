@@ -40,8 +40,11 @@ type alias Config =
     , vel : Float
     , boidDiameter : Float
 
+    -- rule 0: momentum
+    , momentumWeight : Float
+
     -- rule 1: cohesion
-    , cohesion : Float
+    , cohesionWeight : Float
 
     -- etc
     , jerkiness : Float
@@ -58,8 +61,11 @@ defaultConfig =
     , vel = 0.25
     , boidDiameter = 40
 
+    -- rule 0 : momenetum
+    , momentumWeight = 1
+
     -- rule 1: cohesion
-    , cohesion = 0.01
+    , cohesionWeight = 0.01
     , sightDist = 250
     , showSightDist = False
 
@@ -73,16 +79,21 @@ defaultConfig =
 
 type Msg
     = Tick Time
-    | ChangeVel String
-    | ChangeCohesion String
-    | ChangeAlignment String
+      -- config
     | ChangeNumBoids String
+    | ChangeVel String
     | ChangeBoidDiameter String
+      -- rule 0 : momentum
+    | ChangeMomentumWeight String
+      -- rule 1 : momentum
+    | ChangeCohesion String
+    | ChangeSightDist String
+    | ToggleSightDist
+      -- etc
+    | ChangeAlignment String
     | ChangeJerkiness String
     | ChangeMaxTurnRate String
     | ChangePersonalSpace String
-    | ChangeSightDist String
-    | ToggleSightDist
     | ResetDefaults
 
 

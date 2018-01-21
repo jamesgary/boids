@@ -15,7 +15,6 @@ type alias Torus =
 
 dist : Torus -> Vec2 -> Vec2 -> Vec2
 dist ({ width, height } as t) v1 v2 =
-    --sqrt(min(|x1 - x2|, w - |x1 - x2|)^2 + min(|y1 - y2|, h - |y1-y2|)^2)
     let
         ( x1, y1 ) =
             v1 |> clamp t |> V2.toTuple
@@ -23,11 +22,6 @@ dist ({ width, height } as t) v1 v2 =
         ( x2, y2 ) =
             v2 |> clamp t |> V2.toTuple
 
-        -- 1 2 = 1
-        -- 1 3 = 2
-        -- 1 4 = 3
-        -- 1 0 = -1
-        -- 1 -1 = -2
         dx =
             (x2 - x1)
                 |> (\dx ->
@@ -78,7 +72,3 @@ clamp { width, height } vec =
 fmod : Float -> Float -> Float
 fmod numer denom =
     numer - toFloat (floor (numer / denom)) * denom
-
-
-
---dividend - toFloat (floor (dividend / divisor))

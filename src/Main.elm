@@ -87,9 +87,20 @@ update msg ({ boids, torus, seed, config } as model) =
             let
                 newConfig =
                     { config
-                        | cohesion =
+                        | cohesionWeight =
                             String.toFloat inputStr
-                                |> Result.withDefault config.cohesion
+                                |> Result.withDefault config.cohesionWeight
+                    }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
+        ChangeMomentumWeight inputStr ->
+            let
+                newConfig =
+                    { config
+                        | momentumWeight =
+                            String.toFloat inputStr
+                                |> Result.withDefault config.momentumWeight
                     }
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
@@ -215,7 +226,7 @@ tick time ({ torus, config } as model) =
                         newSeed =
                             seed
 
-                        targetAngle =
+                        targetAngleForCohesion =
                             getNearbyBoids config.sightDist torus model.boids boid
                                 |> List.map Tuple.second
                                 |> (\list ->
@@ -228,12 +239,27 @@ tick time ({ torus, config } as model) =
                                                 |> (\( x, y ) -> atan2 y x)
                                    )
 
-                        torque =
-                            config.cohesion
+                        targetAngleAndWeightForSeparation =
+                            getNearbyBoids config.personalSpace torus model.boids boid
+                                |> List.map Tuple.second
+                                |> (\list ->
+                                        if List.isEmpty list then
+                                            0
+                                        else
+                                            list
+                                                |> vecSum
+                                                |> V2.toTuple
+                                                |> (\( x, y ) -> atan2 -y -x)
+                                   )
 
                         newAngle =
-                            ((1 - torque) * boid.angle)
-                                + (torque * targetAngle)
+                            vecAvg
+                                [ V2.fromTuple (fromPolar ( config.momentumWeight, boid.angle ))
+                                , V2.fromTuple (fromPolar ( config.cohesionWeight, targetAngleForCohesion ))
+                                ]
+                                |> V2.toTuple
+                                |> toPolar
+                                |> Tuple.second
 
                         newPos =
                             V2.add boid.pos
@@ -248,9 +274,6 @@ tick time ({ torus, config } as model) =
                     ( { boid
                         | pos = newPos
                         , angle = newAngle
-                        , targetAngle = targetAngle
-
-                        --| turningAcc = newTurningAcc
                       }
                         :: boids
                     , newSeed

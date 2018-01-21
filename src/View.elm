@@ -24,8 +24,10 @@ view { boids, torus, config } =
             , configInput "# of Boids" config.numBoids ChangeNumBoids
             , configInput "Speed" config.vel ChangeVel
             , configInput "Boid Size" config.boidDiameter ChangeBoidDiameter
+            , h2 [] [ text "Rule 0: Momentum" ]
+            , configInput "Momentum Weight" config.momentumWeight ChangeMomentumWeight
             , h2 [] [ text "Rule 1: Cohesion" ]
-            , configInput "Cohesion" config.cohesion ChangeCohesion
+            , configInput "Cohesion Weight" config.cohesionWeight ChangeCohesion
             , configInput "Sight Range" config.sightDist ChangeSightDist
             , configCheckbox "Show Sight Range" config.showSightDist ToggleSightDist
 
