@@ -229,14 +229,12 @@ tick time ({ torus, config } as model) =
                                    )
 
                         torque =
-                            0.1
+                            config.cohesion
 
                         newAngle =
                             ((1 - torque) * boid.angle)
                                 + (torque * targetAngle)
-                                |> always targetAngle
 
-                        --|> always (boid.angle - 0.01)
                         newPos =
                             V2.add boid.pos
                                 (fromPolar ( config.vel * time, -newAngle )

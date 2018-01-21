@@ -24,9 +24,8 @@ view { boids, torus, config } =
             , configInput "# of Boids" config.numBoids ChangeNumBoids
             , configInput "Speed" config.vel ChangeVel
             , configInput "Boid Size" config.boidDiameter ChangeBoidDiameter
-            , h2 [] [ text "Rule 1: Wiggle!" ]
-            , configInput "Jerkiness" config.jerkiness ChangeJerkiness
-            , configInput "Max Turn Rate" config.maxTurnRate ChangeMaxTurnRate
+            , h2 [] [ text "Rule 1: Cohesion" ]
+            , configInput "Cohesion" config.cohesion ChangeCohesion
             , configInput "Sight Range" config.sightDist ChangeSightDist
             , configCheckbox "Show Sight Range" config.showSightDist ToggleSightDist
 

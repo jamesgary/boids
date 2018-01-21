@@ -37,13 +37,15 @@ type alias Rule =
 
 type alias Config =
     { numBoids : Int
-    , boidDiameter : Float
     , vel : Float
+    , boidDiameter : Float
+
+    -- rule 1: cohesion
+    , cohesion : Float
+
+    -- etc
     , jerkiness : Float
     , maxTurnRate : Float
-
-    --
-    , cohesion : Float
     , alignment : Float
     , personalSpace : Float
     , sightDist : Float
@@ -55,13 +57,17 @@ defaultConfig =
     { numBoids = 30
     , vel = 0.25
     , boidDiameter = 40
-    , jerkiness = 0.5
+
+    -- rule 1: cohesion
+    , cohesion = 0.01
+    , sightDist = 250
+    , showSightDist = False
+
+    -- etc
     , maxTurnRate = 0.05
-    , cohesion = 0.0001
+    , jerkiness = 0.5
     , alignment = 0.1
     , personalSpace = 10
-    , sightDist = 250
-    , showSightDist = True
     }
 
 
