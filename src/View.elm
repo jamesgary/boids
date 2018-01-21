@@ -30,12 +30,22 @@ view { boids, torus, config } =
             , configInput "Cohesion Weight" config.cohesionWeight ChangeCohesion
             , configInput "Sight Range" config.sightDist ChangeSightDist
             , configCheckbox "Show Sight Range" config.showSightDist ToggleSightDist
+            , h2 [] [ text "Rule 2: Alignment" ]
+            , configInput "Alignment Weight" config.alignment ChangeAlignment
             , h2 [] [ text "Rule 3: Separation" ]
             , configInput "Separation Weight" config.separationWeight ChangeSeparationWeight
             , configInput "Personal Space" config.personalSpace ChangePersonalSpace
 
             -- gotta refresh to see new form values (shrug)
             , button [ onClick ResetDefaults ] [ text "Reset Defaults" ]
+            , button [ onClick TogglePause ]
+                [ text
+                    (if config.paused then
+                        "Unpause"
+                     else
+                        "Pause"
+                    )
+                ]
             , case boids of
                 boid :: [] ->
                     div

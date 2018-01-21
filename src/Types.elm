@@ -45,41 +45,51 @@ type alias Config =
 
     -- rule 1: cohesion
     , cohesionWeight : Float
+    , sightDist : Float
+    , showSightDist : Bool
+
+    -- rule 2: alignment
+    , alignment : Float
 
     -- rule 3: separation
     , separationWeight : Float
+    , personalSpace : Float
 
     -- etc
+    , paused : Bool
+
+    -- unused
     , jerkiness : Float
     , maxTurnRate : Float
-    , alignment : Float
-    , personalSpace : Float
-    , sightDist : Float
-    , showSightDist : Bool
     }
 
 
 defaultConfig =
     { numBoids = 30
-    , vel = 0.25
+    , vel = 0.3
     , boidDiameter = 40
 
     -- rule 0 : momenetum
-    , momentumWeight = 1
+    , momentumWeight = 500
 
     -- rule 1: cohesion
-    , cohesionWeight = 0.01
+    , cohesionWeight = 2
     , sightDist = 250
     , showSightDist = False
 
-    -- rule 3 separation
-    , separationWeight = 0.1
+    -- rule 2: alignment
+    , alignment = 30
+
+    -- rule 3: separation
+    , separationWeight = 10
+    , personalSpace = 60
 
     -- etc
+    , paused = False
+
+    -- unused
     , maxTurnRate = 0.05
     , jerkiness = 0.5
-    , alignment = 0.1
-    , personalSpace = 10
     }
 
 
@@ -95,14 +105,17 @@ type Msg
     | ChangeCohesion String
     | ChangeSightDist String
     | ToggleSightDist
+      -- rule 2 : alignment
+    | ChangeAlignment String
       -- rule 3 : separation
     | ChangeSeparationWeight String
+    | ChangePersonalSpace String
       -- etc
-    | ChangeAlignment String
+    | ResetDefaults
+    | TogglePause
+      -- unused
     | ChangeJerkiness String
     | ChangeMaxTurnRate String
-    | ChangePersonalSpace String
-    | ResetDefaults
 
 
 type alias Flags =

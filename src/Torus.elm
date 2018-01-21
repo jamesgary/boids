@@ -28,7 +28,7 @@ dist ({ width, height } as t) v1 v2 =
                         if dx > width / 2 then
                             width - dx
                         else if dx < -width / 2 then
-                            dx - width
+                            dx + width
                         else
                             dx
                    )
@@ -39,7 +39,7 @@ dist ({ width, height } as t) v1 v2 =
                         if dy > height / 2 then
                             height - dy
                         else if dy < -height / 2 then
-                            dy - height
+                            dy + height
                         else
                             dy
                    )

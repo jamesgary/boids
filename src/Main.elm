@@ -59,7 +59,7 @@ boidGenerator { width, height } =
         )
         (Random.float 0 width)
         (Random.float 0 height)
-        (Random.float 0 (turns 1))
+        (Random.float (turns 0.5) (turns -0.5))
         (Random.Extra.sample niceColors)
 
 
@@ -182,6 +182,13 @@ update msg ({ boids, torus, seed, config } as model) =
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
 
+        TogglePause ->
+            let
+                newConfig =
+                    { config | paused = not config.paused }
+            in
+            { model | config = newConfig } ! [ saveConfig newConfig ]
+
         ChangeNumBoids inputStr ->
             let
                 numBoids =
@@ -232,32 +239,56 @@ tick time ({ torus, config } as model) =
     let
         ( newBoids, newSeed ) =
             List.foldr
-                (\boid ( boids, seed ) ->
+                (\boid ( appendingBoidList, seed ) ->
                     let
                         newSeed =
                             seed
 
-                        targetAngleForCohesion =
+                        ( targetAngleForCohesion, cohesionWeight ) =
                             getNearbyBoids config.sightDist torus model.boids boid
                                 |> List.map Tuple.second
-                                |> (\list ->
-                                        if List.isEmpty list then
-                                            boid.angle
+                                |> (\dists ->
+                                        if List.isEmpty dists then
+                                            ( boid.angle, 0 )
                                         else
-                                            list
+                                            ( dists
                                                 |> vecSum
                                                 |> V2.toTuple
                                                 |> (\( x, y ) -> atan2 y x)
+                                            , config.cohesionWeight
+                                            )
+                                   )
+
+                        ( targetAngleForAlignment, alignmentWeight ) =
+                            getNearbyBoids config.sightDist torus model.boids boid
+                                |> List.map Tuple.first
+                                |> (\boids ->
+                                        if List.isEmpty boids then
+                                            ( boid.angle, 0 )
+                                        else
+                                            ( boids
+                                                |> List.map
+                                                    (\b ->
+                                                        fromPolar ( 1, b.angle )
+                                                            |> V2.fromTuple
+                                                            |> Debug.log ("to " ++ toString b.color)
+                                                    )
+                                                |> vecAvg
+                                                |> V2.toTuple
+                                                |> toPolar
+                                                |> Tuple.second
+                                            , config.alignment
+                                            )
                                    )
 
                         ( targetAngleForSeparation, separationWeight ) =
                             getNearbyBoids config.personalSpace torus model.boids boid
                                 |> List.map Tuple.second
-                                |> (\list ->
-                                        if List.isEmpty list then
+                                |> (\dists ->
+                                        if List.isEmpty dists then
                                             ( boid.angle, 0 )
                                         else
-                                            ( list
+                                            ( dists
                                                 |> vecSum
                                                 |> V2.toTuple
                                                 |> (\( x, y ) -> atan2 -y -x)
@@ -275,8 +306,14 @@ tick time ({ torus, config } as model) =
                                     )
                                 , V2.fromTuple
                                     (fromPolar
-                                        ( config.cohesionWeight
+                                        ( cohesionWeight
                                         , targetAngleForCohesion
+                                        )
+                                    )
+                                , V2.fromTuple
+                                    (fromPolar
+                                        ( alignmentWeight
+                                        , targetAngleForAlignment
                                         )
                                     )
                                 , V2.fromTuple
@@ -304,7 +341,7 @@ tick time ({ torus, config } as model) =
                         | pos = newPos
                         , angle = newAngle
                       }
-                        :: boids
+                        :: appendingBoidList
                     , newSeed
                     )
                 )
@@ -312,8 +349,7 @@ tick time ({ torus, config } as model) =
                 model.boids
     in
     { model
-        | boids =
-            newBoids
+        | boids = newBoids
         , seed = newSeed
     }
 
@@ -329,9 +365,11 @@ getNearbyBoids maxDist torus boids boid =
                     let
                         dist =
                             Torus.dist torus boid.pos b.pos
+
+                        --|> Debug.log "dist"
                     in
                     if V2.length dist <= maxDist then
-                        Just ( boid, dist )
+                        Just ( b, dist )
                     else
                         Nothing
             )
@@ -339,7 +377,10 @@ getNearbyBoids maxDist torus boids boid =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    AnimationFrame.diffs Tick
+    if model.config.paused then
+        Sub.none
+    else
+        AnimationFrame.diffs Tick
 
 
 
