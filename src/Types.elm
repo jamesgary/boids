@@ -4,13 +4,13 @@ import Color exposing (Color)
 import Math.Vector2 as V2 exposing (Vec2)
 import Random
 import Time exposing (Time)
+import Torus exposing (Torus)
 
 
 type alias Model =
     { boids : List Boid
     , seed : Random.Seed
-    , width : Float
-    , height : Float
+    , torus : Torus
     , config : Config
     }
 
@@ -22,7 +22,7 @@ type alias Angle =
 type alias Boid =
     { pos : Vec2
     , angle : Angle
-    , turningAcc : Angle
+    , targetAngle : Angle
     , color : Color
     }
 
@@ -60,8 +60,8 @@ defaultConfig =
     , cohesion = 0.0001
     , alignment = 0.1
     , personalSpace = 10
-    , sightDist = 70
-    , showSightDist = False
+    , sightDist = 250
+    , showSightDist = True
     }
 
 
@@ -77,6 +77,7 @@ type Msg
     | ChangePersonalSpace String
     | ChangeSightDist String
     | ToggleSightDist
+    | ResetDefaults
 
 
 type alias Flags =

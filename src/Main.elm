@@ -1,15 +1,14 @@
 module Main exposing (main)
 
---import Torus exposing (..)
-
 import AnimationFrame
 import Color
 import Html exposing (Html)
-import Math.Vector2 as V2 exposing (Vec2, getX, getY, vec2)
+import Math.Vector2 as V2 exposing (Vec2, vec2)
 import Ports exposing (saveConfig)
 import Random
 import Random.Extra
 import Time exposing (Time)
+import Torus exposing (Torus)
 import Types exposing (..)
 import View exposing (view)
 
@@ -35,13 +34,12 @@ init { maybeConfig, timestamp, width, height } =
                     defaultConfig
 
         ( boids, seed ) =
-            boidGenerator width height
+            boidGenerator (Torus width height)
                 |> Random.list config.numBoids
                 |> (\gen -> Random.step gen (Random.initialSeed timestamp))
     in
     ( { boids = boids
-      , width = width
-      , height = height
+      , torus = Torus width height
       , seed = seed
       , config = config
       }
@@ -49,25 +47,24 @@ init { maybeConfig, timestamp, width, height } =
     )
 
 
-boidGenerator : Float -> Float -> Random.Generator Boid
-boidGenerator width height =
-    Random.map5
-        (\x y a ta color ->
+boidGenerator : Torus -> Random.Generator Boid
+boidGenerator { width, height } =
+    Random.map4
+        (\x y a color ->
             { pos = vec2 x y
             , angle = a
-            , turningAcc = ta
+            , targetAngle = a
             , color = color |> Maybe.withDefault Color.white
             }
         )
         (Random.float 0 width)
         (Random.float 0 height)
         (Random.float 0 (turns 1))
-        (Random.float 0 1)
         (Random.Extra.sample niceColors)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ boids, width, height, seed, config } as model) =
+update msg ({ boids, torus, seed, config } as model) =
     case msg of
         Tick time ->
             ( tick (max (1000 / 60) time) model
@@ -170,7 +167,7 @@ update msg ({ boids, width, height, seed, config } as model) =
 
                 ( newBoids, newSeed ) =
                     if numBoids > List.length boids then
-                        boidGenerator width height
+                        boidGenerator torus
                             |> Random.list (numBoids - List.length boids)
                             |> (\gen -> Random.step gen seed)
                     else
@@ -193,39 +190,70 @@ update msg ({ boids, width, height, seed, config } as model) =
             in
             { model | config = newConfig } ! [ saveConfig newConfig ]
 
+        ResetDefaults ->
+            let
+                newConfig =
+                    defaultConfig
+            in
+            init
+                { timestamp = Random.step (Random.int 0 Random.maxInt) model.seed |> Tuple.first
+                , width = torus.width
+                , height = torus.height
+                , maybeConfig = Nothing
+                }
+                |> Tuple.first
+                |> (\model -> model ! [ saveConfig model.config ])
+
 
 tick : Time.Time -> Model -> Model
-tick time ({ width, height, config } as model) =
+tick time ({ torus, config } as model) =
     let
         ( newBoids, newSeed ) =
             List.foldr
                 (\boid ( boids, seed ) ->
                     let
-                        ( newTurningAcc, newSeed ) =
-                            --( boid.turningAcc, seed )
-                            Random.step
-                                (Random.float (-1 * config.jerkiness) config.jerkiness
-                                    |> Random.map
-                                        (\j ->
-                                            boid.turningAcc + j
-                                        )
-                                )
-                                seed
+                        newSeed =
+                            seed
+
+                        targetAngle =
+                            getNearbyBoids config.sightDist torus model.boids boid
+                                |> List.map Tuple.second
+                                |> (\list ->
+                                        if List.isEmpty list then
+                                            boid.angle
+                                        else
+                                            list
+                                                |> vecSum
+                                                |> V2.toTuple
+                                                |> (\( x, y ) -> atan2 y x)
+                                   )
+
+                        torque =
+                            0.1
 
                         newAngle =
-                            boid.angle + (config.maxTurnRate * cos (newTurningAcc * time))
+                            ((1 - torque) * boid.angle)
+                                + (torque * targetAngle)
+                                |> always targetAngle
 
+                        --|> always (boid.angle - 0.01)
                         newPos =
                             V2.add boid.pos
-                                (fromPolar ( config.vel * time, newAngle ) |> V2.fromTuple)
+                                (fromPolar ( config.vel * time, -newAngle )
+                                    |> (\( x, y ) ->
+                                            ( x, -y )
+                                                |> V2.fromTuple
+                                       )
+                                )
+                                |> Torus.clamp torus
                     in
-                    ( ({ boid
-                        | turningAcc = newTurningAcc
+                    ( { boid
+                        | pos = newPos
                         , angle = newAngle
-                        , pos = newPos
-                       }
-                        |> wrapBoid width height
-                      )
+                        , targetAngle = targetAngle
+
+                        --| turningAcc = newTurningAcc
+                      }
                         :: boids
                     , newSeed
                     )
@@ -240,83 +268,23 @@ tick time ({ width, height, config } as model) =
     }
 
 
-getNearbyBoids : Float -> Float -> Float -> List Boid -> Boid -> List Boid
-getNearbyBoids maxDist width height boids boid =
-    let
-        ( x, y ) =
-            boid.pos
-                |> V2.toTuple
-    in
+getNearbyBoids : Float -> Torus -> List Boid -> Boid -> List ( Boid, Vec2 )
+getNearbyBoids maxDist torus boids boid =
     boids
-        |> List.filter
+        |> List.filterMap
             (\b ->
                 if b == boid then
-                    False
+                    Nothing
                 else
                     let
                         dist =
-                            getDistBetweenBoids width height boid b
-                                |> V2.length
+                            Torus.dist torus boid.pos b.pos
                     in
-                    dist <= maxDist
+                    if V2.length dist <= maxDist then
+                        Just ( boid, dist )
+                    else
+                        Nothing
             )
-
-
-getDistBetweenBoids : Float -> Float -> Boid -> Boid -> Vec2
-getDistBetweenBoids width height b1 b2 =
-    let
-        ( x1, y1 ) =
-            b1.pos
-                |> V2.toTuple
-
-        ( x2, y2 ) =
-            b2.pos
-                |> V2.toTuple
-
-        dx =
-            abs (x1 - x2)
-                |> (\dx ->
-                        if dx > width / 2 then
-                            width - dx
-                        else
-                            dx
-                   )
-
-        dy =
-            abs (y1 - y2)
-                |> (\dy ->
-                        if dy > height / 2 then
-                            width - dy
-                        else
-                            dy
-                   )
-    in
-    V2.fromTuple ( dx, dy )
-
-
-wrapBoid : Float -> Float -> Boid -> Boid
-wrapBoid width height ({ pos } as boid) =
-    { boid
-        | pos =
-            pos
-                |> V2.toTuple
-                |> (\( x, y ) ->
-                        ( wrap width x
-                        , wrap height y
-                        )
-                   )
-                |> V2.fromTuple
-    }
-
-
-wrap : Float -> Float -> Float
-wrap max val =
-    if val < 0 then
-        wrap max (val + max)
-    else if val > max then
-        wrap max (val - max)
-    else
-        val
 
 
 subscriptions : Model -> Sub Msg

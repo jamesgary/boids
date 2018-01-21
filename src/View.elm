@@ -1,21 +1,22 @@
 module View exposing (view)
 
-import Color
-import Html exposing (Html, div, h1, h2, input, label, node, text)
-import Html.Attributes exposing (checked, class, defaultValue, style, type_)
+import Color exposing (Color)
+import Html exposing (Html, button, div, h1, h2, hr, input, label, node, text)
+import Html.Attributes exposing (checked, class, defaultValue, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Math.Vector2 as V2 exposing (Vec2, getX, getY, vec2)
 import String.Extra
+import Torus exposing (Torus)
 import Types exposing (..)
 
 
 view : Model -> Html Msg
-view { boids, width, height, config } =
+view { boids, torus, config } =
     div [ class "container" ]
         [ boidCss config
         , div [ class "boids" ]
             (boids
-                |> List.map (drawBoid config width height)
+                |> List.map (drawBoid config torus)
                 |> List.concat
             )
         , div [ class "config" ]
@@ -26,16 +27,44 @@ view { boids, width, height, config } =
             , h2 [] [ text "Rule 1: Wiggle!" ]
             , configInput "Jerkiness" config.jerkiness ChangeJerkiness
             , configInput "Max Turn Rate" config.maxTurnRate ChangeMaxTurnRate
+            , configInput "Sight Range" config.sightDist ChangeSightDist
+            , configCheckbox "Show Sight Range" config.showSightDist ToggleSightDist
 
-            --, configInput "Sight Range" config.sightDist ChangeSightDist
-            --, configCheckbox "Show Sight Range" config.showSightDist ToggleSightDist
-            --, h2 [] [ text "Rule 1: Fly towards center of mass" ]
-            --, configInput "Cohesion" config.cohesion ChangeCohesion
-            --, h2 [] [ text "Rule 2: Match velocity" ]
-            --, configInput "Alignment" config.alignment ChangeAlignment
-            --, h2 [] [ text "Rule 3: Avoid collisions" ]
-            --, configInput "Personal Space" config.personalSpace ChangePersonalSpace
+            -- gotta refresh to see new form values (shrug)
+            , button [ onClick ResetDefaults ] [ text "Reset Defaults" ]
+            , case boids of
+                boid :: [] ->
+                    div
+                        [ style
+                            [ ( "font-family", "monospace" )
+                            , ( "font-size", "11px" )
+                            ]
+                        ]
+                        [ hr [] []
+                        , h1 [] [ text "Debug" ]
+                        , debug "Pos" boid.pos
+                        , debug "Angle" boid.angle
+                        , debug "Target Angle" boid.targetAngle
+                        ]
+
+                _ ->
+                    text ""
             ]
+        ]
+
+
+debug : String -> a -> Html Msg
+debug title val =
+    div
+        [ style
+            [ ( "max-height", "70px" )
+            , ( "margin", "5px 0" )
+            ]
+        ]
+        [ title
+            ++ ": "
+            ++ toString val
+            |> text
         ]
 
 
@@ -109,24 +138,30 @@ configCheckbox title isChecked msg =
         ]
 
 
-drawBoid : Config -> Float -> Float -> Boid -> List (Html Msg)
-drawBoid { boidDiameter } width height ({ pos } as boid) =
+drawBoid : Config -> Torus -> Boid -> List (Html Msg)
+drawBoid { boidDiameter, showSightDist, sightDist } { width, height } ({ pos } as boid) =
     let
         ( x, y ) =
             V2.toTuple pos
 
+        drawRad =
+            if showSightDist then
+                sightDist
+            else
+                boidDiameter
+
         wrappedXList =
-            if x < boidDiameter then
+            if x < drawRad then
                 [ x, x + width ]
-            else if x > width - boidDiameter then
+            else if x > width - drawRad then
                 [ x, x - width ]
             else
                 [ x ]
 
         wrappedYList =
-            if y < boidDiameter then
+            if y < drawRad then
                 [ y, y + height ]
-            else if y > height - boidDiameter then
+            else if y > height - drawRad then
                 [ y, y - height ]
             else
                 [ y ]
@@ -142,34 +177,40 @@ drawBoid { boidDiameter } width height ({ pos } as boid) =
     wrappedPosList
         |> List.map
             (\pos ->
-                drawBoidHelper { boid | pos = pos }
+                drawBoidHelper height { boid | pos = pos }
             )
 
 
-drawBoidHelper : Boid -> Html Msg
-drawBoidHelper { pos, angle, color } =
+drawBoidHelper : Float -> Boid -> Html Msg
+drawBoidHelper height { pos, angle, color } =
     let
         translateVal =
-            px (getX pos) ++ "," ++ px (getY pos)
+            -- canvas coordinates are not euclidean coordinates!
+            px (getX pos) ++ "," ++ px (height - getY pos)
 
         rotateVal =
-            angle |> toString
+            -angle |> toString
 
         colorStr =
-            color
-                |> Color.toRgb
-                |> (\{ red, green, blue } -> "rgb(" ++ toString red ++ "," ++ toString green ++ "," ++ toString blue ++ ")")
+            color |> toRgb
     in
     div
         [ class "boid"
         , style
             [ ( "transform"
-              , "translate(" ++ translateVal ++ ") rotate(" ++ rotateVal ++ "rad)"
+              , "translate(" ++ translateVal ++ ") rotate(" ++ rotateVal ++ "rad) scale(1,-1)"
               )
             , ( "background", colorStr )
             ]
         ]
         []
+
+
+toRgb : Color -> String
+toRgb color =
+    color
+        |> Color.toRgb
+        |> (\{ red, green, blue } -> "rgb(" ++ toString red ++ "," ++ toString green ++ "," ++ toString blue ++ ")")
 
 
 px : number -> String
