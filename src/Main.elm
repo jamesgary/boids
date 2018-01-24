@@ -296,7 +296,7 @@ tick time ({ torus, config, mousePos } as model) =
                                                     (\b ->
                                                         fromPolar ( 1, b.angle )
                                                             |> V2.fromTuple
-                                                            |> Debug.log ("to " ++ toString b.color)
+                                                     --|> Debug.log ("to " ++ toString b.color)
                                                     )
                                                 |> vecAvg
                                                 |> V2.toTuple

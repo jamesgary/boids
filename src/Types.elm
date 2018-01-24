@@ -90,7 +90,7 @@ defaultConfig =
     , personalSpace = 60
 
     -- rule 4: follow
-    , followWeight = 10
+    , followWeight = 50
 
     -- etc
     , paused = False

@@ -9,15 +9,22 @@ To run...
 
 ```sh
 ./bin/run.sh
+
 # ^ That runs the following:
 # elm-live src/Main.elm --output=public/js/main.js --dir=public/
 ```
 
-Fly towards center of mass
-- Returns the average position of nearby boids
-Match velocity
-- Returns the average velocity of nearby boids
-Avoid collisions
-- Strongly repel colliding boids
-Wiggle!
-- Random velocity
+## TODO
+
+- Performance
+  - elm-benchmark for updates
+  - chrome or stats.js for view
+- 3D
+  - Just use vec3 instead of vec2
+- Programmatic rules
+  - Input -> Func -> (New Angle, Weight)
+  - Input = ((Boids .pos dir or .angle within range) -> (sum/avg)) / MousePos dir
+- Misc
+  - Listen to window resize
+  - Toggleable mouse follow
+  - Drawable walls/attractors/predators
