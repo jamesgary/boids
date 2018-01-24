@@ -1,5 +1,7 @@
 # Boids Simulator in Elm
 
+Playable at http://elm-boids.s3-website-us-west-1.amazonaws.com/
+
 Inspired by...
 - [XnaBoids Video](https://www.youtube.com/watch?v=M028vafB0l8)
 - [Craig Reynolds' Boids](http://www.red3d.com/cwr/boids/)
@@ -22,8 +24,6 @@ To run...
 - 3D
   - Just use vec3 instead of vec2
 - Programmatic rules
-  - Input -> Func -> (New Angle, Weight)
-  - Input = ((Boids .pos dir or .angle within range) -> (sum/avg)) / MousePos dir
 - Misc
   - Listen to window resize
   - Toggleable mouse follow
