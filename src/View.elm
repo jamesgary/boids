@@ -226,7 +226,7 @@ drawBoidHelper height { pos, angle, color } =
             -angle |> String.fromFloat
 
         colorStr =
-            color |> toRgb
+            color |> Color.toCssString
     in
     div
         [ class "boid"
@@ -234,13 +234,6 @@ drawBoidHelper height { pos, angle, color } =
         , style "background" colorStr
         ]
         []
-
-
-toRgb : Color -> String
-toRgb color =
-    color
-        |> Color.toRgba
-        |> (\{ red, green, blue, alpha } -> "rgb(" ++ String.fromFloat red ++ "," ++ String.fromFloat green ++ "," ++ String.fromFloat blue ++ ")")
 
 
 px : Float -> String

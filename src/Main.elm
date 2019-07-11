@@ -463,13 +463,8 @@ subscriptions model =
             [ Browser.Events.onAnimationFrameDelta Tick
             , Browser.Events.onMouseMove
                 (JD.map2 (\a b -> ( a, b ))
-                    (JD.field "movementX" JD.float)
-                    (JD.field "movementY" JD.float)
+                    (JD.field "clientX" JD.float)
+                    (JD.field "clientY" JD.float)
                     |> JD.map MouseMoves
                 )
             ]
-
-
-
---Time.every (Time.second * 5) Tick
---|> always Sub.none
