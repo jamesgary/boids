@@ -6,6 +6,7 @@
     <link rel="stylesheet" type="text/css" href="./css/main.css">
   </head>
   <body>
+    <div id="elm"></div>
     <script src="./js/main.js" charset="utf-8"></script>
     <script>
       var config = localStorage.getItem("boids:config");
@@ -19,11 +20,14 @@
 
       var app;
       try {
-        var app = Elm.Main.fullscreen({
+        var app = Elm.Main.init({
+          node: document.getElementById('elm'),
+          flags: {
             timestamp: Date.now(),
             width: window.innerWidth,
             height: window.innerHeight,
             maybeConfig: config,
+          },
         });
       } catch (e) {
         // probably have outdated config, so reset the config

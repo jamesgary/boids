@@ -1,11 +1,10 @@
-module Types exposing (..)
+module Types exposing (Angle, Boid, Config, Flags, Model, Msg(..), Rule, defaultConfig, defaultSightDistance, defaultSpeed, niceColors, vecAngle, vecAvg, vecSum)
 
 import Color exposing (Color)
 import Math.Vector2 as V2 exposing (Vec2)
-import Mouse
 import Random
-import Time exposing (Time)
 import Torus exposing (Torus)
+import Utils exposing (fromTuple, toTuple)
 
 
 type alias Model =
@@ -102,7 +101,7 @@ defaultConfig =
 
 
 type Msg
-    = Tick Time
+    = Tick Float
       -- config
     | ChangeNumBoids String
     | ChangeVel String
@@ -123,7 +122,7 @@ type Msg
       -- etc
     | ResetDefaults
     | TogglePause
-    | MouseMoves Mouse.Position
+    | MouseMoves ( Float, Float )
       -- unused
     | ChangeJerkiness String
     | ChangeMaxTurnRate String
@@ -139,14 +138,14 @@ type alias Flags =
 
 vecSum : List Vec2 -> Vec2
 vecSum vList =
-    List.foldl (\v vSum -> V2.add v vSum) (V2.fromTuple ( 0, 0 )) vList
+    List.foldl (\v vSum -> V2.add v vSum) (fromTuple ( 0, 0 )) vList
 
 
 vecAvg : List Vec2 -> Vec2
 vecAvg vList =
     case List.length vList of
         0 ->
-            V2.fromTuple ( 0, 0 )
+            fromTuple ( 0, 0 )
 
         length ->
             vecSum vList
@@ -156,7 +155,7 @@ vecAvg vList =
 vecAngle : Vec2 -> Angle
 vecAngle v =
     v
-        |> V2.toTuple
+        |> toTuple
         |> (\( x, y ) -> atan2 y x)
 
 

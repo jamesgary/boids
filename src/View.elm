@@ -2,12 +2,12 @@ module View exposing (view)
 
 import Color exposing (Color)
 import Html exposing (Html, button, div, h1, h2, hr, input, label, node, text)
-import Html.Attributes exposing (checked, class, defaultValue, style, type_, value)
+import Html.Attributes exposing (checked, class, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Math.Vector2 as V2 exposing (Vec2, getX, getY, vec2)
-import String.Extra
 import Torus exposing (Torus)
 import Types exposing (..)
+import Utils exposing (fromTuple, toTuple)
 
 
 view : Model -> Html Msg
@@ -21,7 +21,7 @@ view { boids, torus, config } =
             )
         , div [ class "config" ]
             [ h1 [] [ text "Boids" ]
-            , configInput "# of Boids" config.numBoids ChangeNumBoids
+            , configInputInt "# of Boids" config.numBoids ChangeNumBoids
             , configInput "Speed" config.vel ChangeVel
             , configInput "Boid Size" config.boidDiameter ChangeBoidDiameter
             , h2 [] [ text "Rule 0: Momentum" ]
@@ -44,6 +44,7 @@ view { boids, torus, config } =
                 [ text
                     (if config.paused then
                         "Unpause"
+
                      else
                         "Pause"
                     )
@@ -51,16 +52,15 @@ view { boids, torus, config } =
             , case boids of
                 boid :: [] ->
                     div
-                        [ style
-                            [ ( "font-family", "monospace" )
-                            , ( "font-size", "11px" )
-                            ]
+                        [ style "font-family" "monospace"
+                        , style "font-size" "11px"
                         ]
                         [ hr [] []
                         , h1 [] [ text "Debug" ]
-                        , debug "Pos" boid.pos
-                        , debug "Angle" boid.angle
-                        , debug "Target Angle" boid.targetAngle
+
+                        --, debug "Pos" boid.pos
+                        --, debug "Angle" boid.angle
+                        --, debug "Target Angle" boid.targetAngle
                         ]
 
                 _ ->
@@ -69,13 +69,11 @@ view { boids, torus, config } =
         ]
 
 
-debug : String -> a -> Html Msg
-debug title val =
+debug : String -> a -> (a -> String) -> Html Msg
+debug title val toString =
     div
-        [ style
-            [ ( "max-height", "70px" )
-            , ( "margin", "5px 0" )
-            ]
+        [ style "max-height" "70px"
+        , style "margin" "5px 0"
         ]
         [ title
             ++ ": "
@@ -108,14 +106,15 @@ boidCss { boidDiameter, sightDist, showSightDist } =
   display: SIGHT_DISPLAY;
 }
 """
-                |> String.Extra.replace "DIAMETER" (px boidDiameter)
-                |> String.Extra.replace "NEG_RAD" (px (boidDiameter * -0.5))
-                |> String.Extra.replace "RAD_MINUS_ONE" (px ((boidDiameter * 0.5) - 1))
-                |> String.Extra.replace "SIGHT_OFFSET" (px ((boidDiameter * 0.5) + (sightDist * -1) - 1))
-                |> String.Extra.replace "SIGHT_DIST" (px (sightDist * 2))
-                |> String.Extra.replace "SIGHT_DISPLAY"
+                |> String.replace "DIAMETER" (px boidDiameter)
+                |> String.replace "NEG_RAD" (px (boidDiameter * -0.5))
+                |> String.replace "RAD_MINUS_ONE" (px ((boidDiameter * 0.5) - 1))
+                |> String.replace "SIGHT_OFFSET" (px ((boidDiameter * 0.5) + (sightDist * -1) - 1))
+                |> String.replace "SIGHT_DIST" (px (sightDist * 2))
+                |> String.replace "SIGHT_DISPLAY"
                     (if showSightDist then
                         "block"
+
                      else
                         "none"
                     )
@@ -125,13 +124,27 @@ boidCss { boidDiameter, sightDist, showSightDist } =
         [ text css ]
 
 
-configInput : String -> number -> (String -> Msg) -> Html Msg
+configInput : String -> Float -> (String -> Msg) -> Html Msg
 configInput title val msg =
     div [ class "config-item" ]
         [ label []
             [ text title
             , input
-                [ defaultValue (toString val)
+                [ Html.Attributes.value (String.fromFloat val)
+                , onInput msg
+                ]
+                []
+            ]
+        ]
+
+
+configInputInt : String -> Int -> (String -> Msg) -> Html Msg
+configInputInt title val msg =
+    div [ class "config-item" ]
+        [ label []
+            [ text title
+            , input
+                [ Html.Attributes.value (String.fromInt val)
                 , onInput msg
                 ]
                 []
@@ -158,42 +171,47 @@ drawBoid : Config -> Torus -> Boid -> List (Html Msg)
 drawBoid { boidDiameter, showSightDist, sightDist } { width, height } ({ pos } as boid) =
     let
         ( x, y ) =
-            V2.toTuple pos
+            toTuple pos
 
         drawRad =
             if showSightDist then
                 sightDist
+
             else
                 boidDiameter
 
         wrappedXList =
             if x < drawRad then
                 [ x, x + width ]
+
             else if x > width - drawRad then
                 [ x, x - width ]
+
             else
                 [ x ]
 
         wrappedYList =
             if y < drawRad then
                 [ y, y + height ]
+
             else if y > height - drawRad then
                 [ y, y - height ]
+
             else
                 [ y ]
 
         wrappedPosList =
             wrappedXList
                 |> List.map
-                    (\x ->
-                        List.map (\y -> V2.fromTuple ( x, y )) wrappedYList
+                    (\x_ ->
+                        List.map (\y_ -> fromTuple ( x_, y_ )) wrappedYList
                     )
                 |> List.concat
     in
     wrappedPosList
         |> List.map
-            (\pos ->
-                drawBoidHelper height { boid | pos = pos }
+            (\pos_ ->
+                drawBoidHelper height { boid | pos = pos_ }
             )
 
 
@@ -205,19 +223,15 @@ drawBoidHelper height { pos, angle, color } =
             px (getX pos) ++ "," ++ px (height - getY pos)
 
         rotateVal =
-            -angle |> toString
+            -angle |> String.fromFloat
 
         colorStr =
             color |> toRgb
     in
     div
         [ class "boid"
-        , style
-            [ ( "transform"
-              , "translate(" ++ translateVal ++ ") rotate(" ++ rotateVal ++ "rad) scale(1,-1)"
-              )
-            , ( "background", colorStr )
-            ]
+        , style "transform" ("translate(" ++ translateVal ++ ") rotate(" ++ rotateVal ++ "rad) scale(1,-1)")
+        , style "background" colorStr
         ]
         []
 
@@ -225,10 +239,10 @@ drawBoidHelper height { pos, angle, color } =
 toRgb : Color -> String
 toRgb color =
     color
-        |> Color.toRgb
-        |> (\{ red, green, blue } -> "rgb(" ++ toString red ++ "," ++ toString green ++ "," ++ toString blue ++ ")")
+        |> Color.toRgba
+        |> (\{ red, green, blue, alpha } -> "rgb(" ++ String.fromFloat red ++ "," ++ String.fromFloat green ++ "," ++ String.fromFloat blue ++ ")")
 
 
-px : number -> String
+px : Float -> String
 px num =
-    toString num ++ "px"
+    String.fromFloat num ++ "px"

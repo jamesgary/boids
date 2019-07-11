@@ -1,6 +1,7 @@
-module Torus exposing (..)
+module Torus exposing (Torus, clamp, dist, fmod, wrappees)
 
-import Math.Vector2 as V2 exposing (Vec2, vec2)
+import Math.Vector2 as Vec2 exposing (Vec2, vec2)
+import Utils exposing (fromTuple, toTuple)
 
 
 type alias Torus =
@@ -17,34 +18,38 @@ dist : Torus -> Vec2 -> Vec2 -> Vec2
 dist ({ width, height } as t) v1 v2 =
     let
         ( x1, y1 ) =
-            v1 |> clamp t |> V2.toTuple
+            v1 |> clamp t |> toTuple
 
         ( x2, y2 ) =
-            v2 |> clamp t |> V2.toTuple
+            v2 |> clamp t |> toTuple
 
         dx =
             (x2 - x1)
-                |> (\dx ->
-                        if dx > width / 2 then
-                            width - dx
-                        else if dx < -width / 2 then
-                            dx + width
+                |> (\dx_ ->
+                        if dx_ > width / 2 then
+                            width - dx_
+
+                        else if dx_ < -width / 2 then
+                            dx_ + width
+
                         else
-                            dx
+                            dx_
                    )
 
         dy =
             (y2 - y1)
-                |> (\dy ->
-                        if dy > height / 2 then
-                            height - dy
-                        else if dy < -height / 2 then
-                            dy + height
+                |> (\dy_ ->
+                        if dy_ > height / 2 then
+                            height - dy_
+
+                        else if dy_ < -height / 2 then
+                            dy_ + height
+
                         else
-                            dy
+                            dy_
                    )
     in
-    V2.fromTuple ( dx, dy )
+    fromTuple ( dx, dy )
 
 
 
@@ -64,9 +69,9 @@ clamp : Torus -> Vec2 -> Vec2
 clamp { width, height } vec =
     let
         ( x, y ) =
-            V2.toTuple vec
+            toTuple vec
     in
-    V2.fromTuple ( fmod x width, fmod y height )
+    fromTuple ( fmod x width, fmod y height )
 
 
 fmod : Float -> Float -> Float

@@ -1,21 +1,22 @@
 module Main exposing (main)
 
-import AnimationFrame
+import Browser
+import Browser.Events
 import Color
 import Html exposing (Html)
-import Math.Vector2 as V2 exposing (Vec2, vec2)
-import Mouse
+import Json.Decode as JD
+import Math.Vector2 as Vec2 exposing (Vec2, vec2)
 import Ports exposing (saveConfig)
 import Random
 import Random.Extra
-import Time exposing (Time)
 import Torus exposing (Torus)
 import Types exposing (..)
+import Utils exposing (fromTuple, toTuple)
 import View exposing (view)
 
 
 main =
-    Html.programWithFlags
+    Browser.element
         { init = init
         , view = view
         , update = update
@@ -80,10 +81,12 @@ update msg ({ boids, torus, seed, config } as model) =
                     { config
                         | vel =
                             String.toFloat inputStr
-                                |> Result.withDefault config.vel
+                                |> Maybe.withDefault config.vel
                     }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ChangeCohesion inputStr ->
             let
@@ -91,10 +94,12 @@ update msg ({ boids, torus, seed, config } as model) =
                     { config
                         | cohesionWeight =
                             String.toFloat inputStr
-                                |> Result.withDefault config.cohesionWeight
+                                |> Maybe.withDefault config.cohesionWeight
                     }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ChangeMomentumWeight inputStr ->
             let
@@ -102,10 +107,12 @@ update msg ({ boids, torus, seed, config } as model) =
                     { config
                         | momentumWeight =
                             String.toFloat inputStr
-                                |> Result.withDefault config.momentumWeight
+                                |> Maybe.withDefault config.momentumWeight
                     }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ChangeAlignment inputStr ->
             let
@@ -113,10 +120,12 @@ update msg ({ boids, torus, seed, config } as model) =
                     { config
                         | alignment =
                             String.toFloat inputStr
-                                |> Result.withDefault config.alignment
+                                |> Maybe.withDefault config.alignment
                     }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ChangeBoidDiameter inputStr ->
             let
@@ -124,10 +133,12 @@ update msg ({ boids, torus, seed, config } as model) =
                     { config
                         | boidDiameter =
                             String.toFloat inputStr
-                                |> Result.withDefault config.boidDiameter
+                                |> Maybe.withDefault config.boidDiameter
                     }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ChangePersonalSpace inputStr ->
             let
@@ -135,10 +146,12 @@ update msg ({ boids, torus, seed, config } as model) =
                     { config
                         | personalSpace =
                             String.toFloat inputStr
-                                |> Result.withDefault config.personalSpace
+                                |> Maybe.withDefault config.personalSpace
                     }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ChangeSightDist inputStr ->
             let
@@ -146,10 +159,12 @@ update msg ({ boids, torus, seed, config } as model) =
                     { config
                         | sightDist =
                             String.toFloat inputStr
-                                |> Result.withDefault config.sightDist
+                                |> Maybe.withDefault config.sightDist
                     }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ChangeJerkiness inputStr ->
             let
@@ -157,10 +172,12 @@ update msg ({ boids, torus, seed, config } as model) =
                     { config
                         | jerkiness =
                             String.toFloat inputStr
-                                |> Result.withDefault config.jerkiness
+                                |> Maybe.withDefault config.jerkiness
                     }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ChangeMaxTurnRate inputStr ->
             let
@@ -168,10 +185,12 @@ update msg ({ boids, torus, seed, config } as model) =
                     { config
                         | maxTurnRate =
                             String.toFloat inputStr
-                                |> Result.withDefault config.maxTurnRate
+                                |> Maybe.withDefault config.maxTurnRate
                     }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ChangeSeparationWeight inputStr ->
             let
@@ -179,10 +198,12 @@ update msg ({ boids, torus, seed, config } as model) =
                     { config
                         | separationWeight =
                             String.toFloat inputStr
-                                |> Result.withDefault config.separationWeight
+                                |> Maybe.withDefault config.separationWeight
                     }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ChangeFollowWeight inputStr ->
             let
@@ -190,47 +211,55 @@ update msg ({ boids, torus, seed, config } as model) =
                     { config
                         | followWeight =
                             String.toFloat inputStr
-                                |> Result.withDefault config.followWeight
+                                |> Maybe.withDefault config.followWeight
                     }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         TogglePause ->
             let
                 newConfig =
                     { config | paused = not config.paused }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ChangeNumBoids inputStr ->
             let
                 numBoids =
-                    String.toInt inputStr |> Result.withDefault config.numBoids
+                    String.toInt inputStr |> Maybe.withDefault config.numBoids
 
                 ( newBoids, newSeed ) =
                     if numBoids > List.length boids then
                         boidGenerator torus
                             |> Random.list (numBoids - List.length boids)
                             |> (\gen -> Random.step gen seed)
+
                     else
                         ( List.drop (List.length boids - numBoids) boids, seed )
 
                 newConfig =
-                    { config | numBoids = String.toInt inputStr |> Result.withDefault config.numBoids }
+                    { config | numBoids = String.toInt inputStr |> Maybe.withDefault config.numBoids }
             in
-            { model
+            ( { model
                 | config = newConfig
                 , boids = newBoids
                 , seed = newSeed
-            }
-                ! [ saveConfig newConfig ]
+              }
+            , saveConfig newConfig
+            )
 
         ToggleSightDist ->
             let
                 newConfig =
                     { config | showSightDist = not config.showSightDist }
             in
-            { model | config = newConfig } ! [ saveConfig newConfig ]
+            ( { model | config = newConfig }
+            , saveConfig newConfig
+            )
 
         ResetDefaults ->
             let
@@ -244,29 +273,34 @@ update msg ({ boids, torus, seed, config } as model) =
                 , maybeConfig = Nothing
                 }
                 |> Tuple.first
-                |> (\model -> model ! [ saveConfig model.config ])
+                |> (\newModel ->
+                        ( newModel
+                        , saveConfig newModel.config
+                        )
+                   )
 
         MouseMoves mousePos ->
-            { model
+            ( { model
                 | mousePos =
                     mousePos
-                        |> (\{ x, y } ->
-                                ( toFloat x, model.torus.height - toFloat y )
-                                    |> V2.fromTuple
+                        |> (\( x, y ) ->
+                                ( x, model.torus.height - y )
+                                    |> fromTuple
                                     |> Just
                            )
-            }
-                ! []
+              }
+            , Cmd.none
+            )
 
 
-tick : Time.Time -> Model -> Model
-tick time ({ torus, config, mousePos } as model) =
+tick : Float -> Model -> Model
+tick delta ({ torus, config, mousePos } as model) =
     let
         ( newBoids, newSeed ) =
             List.foldr
                 (\boid ( appendingBoidList, seed ) ->
                     let
-                        newSeed =
+                        newSeed_ =
                             seed
 
                         ( targetAngleForCohesion, cohesionWeight ) =
@@ -275,10 +309,11 @@ tick time ({ torus, config, mousePos } as model) =
                                 |> (\dists ->
                                         if List.isEmpty dists then
                                             ( boid.angle, 0 )
+
                                         else
                                             ( dists
                                                 |> vecSum
-                                                |> V2.toTuple
+                                                |> toTuple
                                                 |> (\( x, y ) -> atan2 y x)
                                             , config.cohesionWeight
                                             )
@@ -290,16 +325,17 @@ tick time ({ torus, config, mousePos } as model) =
                                 |> (\boids ->
                                         if List.isEmpty boids then
                                             ( boid.angle, 0 )
+
                                         else
                                             ( boids
                                                 |> List.map
                                                     (\b ->
                                                         fromPolar ( 1, b.angle )
-                                                            |> V2.fromTuple
+                                                            |> fromTuple
                                                      --|> Debug.log ("to " ++ toString b.color)
                                                     )
                                                 |> vecAvg
-                                                |> V2.toTuple
+                                                |> toTuple
                                                 |> toPolar
                                                 |> Tuple.second
                                             , config.alignment
@@ -312,10 +348,11 @@ tick time ({ torus, config, mousePos } as model) =
                                 |> (\dists ->
                                         if List.isEmpty dists then
                                             ( boid.angle, 0 )
+
                                         else
                                             ( dists
                                                 |> vecSum
-                                                |> V2.toTuple
+                                                |> toTuple
                                                 |> (\( x, y ) -> atan2 -y -x)
                                             , config.separationWeight
                                             )
@@ -327,51 +364,51 @@ tick time ({ torus, config, mousePos } as model) =
                                     ( boid.angle, 0 )
 
                                 Just mp ->
-                                    ( V2.sub mp boid.pos |> vecAngle, config.followWeight )
+                                    ( Vec2.sub mp boid.pos |> vecAngle, config.followWeight )
 
                         newAngle =
                             vecAvg
-                                [ V2.fromTuple
+                                [ fromTuple
                                     (fromPolar
                                         ( config.momentumWeight
                                         , boid.angle
                                         )
                                     )
-                                , V2.fromTuple
+                                , fromTuple
                                     (fromPolar
                                         ( cohesionWeight
                                         , targetAngleForCohesion
                                         )
                                     )
-                                , V2.fromTuple
+                                , fromTuple
                                     (fromPolar
                                         ( alignmentWeight
                                         , targetAngleForAlignment
                                         )
                                     )
-                                , V2.fromTuple
+                                , fromTuple
                                     (fromPolar
                                         ( separationWeight
                                         , targetAngleForSeparation
                                         )
                                     )
-                                , V2.fromTuple
+                                , fromTuple
                                     (fromPolar
                                         ( followWeight
                                         , targetAngleForFollow
                                         )
                                     )
                                 ]
-                                |> V2.toTuple
+                                |> toTuple
                                 |> toPolar
                                 |> Tuple.second
 
                         newPos =
-                            V2.add boid.pos
-                                (fromPolar ( config.vel * time, -newAngle )
+                            Vec2.add boid.pos
+                                (fromPolar ( config.vel * delta, -newAngle )
                                     |> (\( x, y ) ->
                                             ( x, -y )
-                                                |> V2.fromTuple
+                                                |> fromTuple
                                        )
                                 )
                                 |> Torus.clamp torus
@@ -381,7 +418,7 @@ tick time ({ torus, config, mousePos } as model) =
                         , angle = newAngle
                       }
                         :: appendingBoidList
-                    , newSeed
+                    , newSeed_
                     )
                 )
                 ( [], model.seed )
@@ -400,6 +437,7 @@ getNearbyBoids maxDist torus boids boid =
             (\b ->
                 if b == boid then
                     Nothing
+
                 else
                     let
                         dist =
@@ -407,8 +445,9 @@ getNearbyBoids maxDist torus boids boid =
 
                         --|> Debug.log "dist"
                     in
-                    if V2.length dist <= maxDist then
+                    if Vec2.length dist <= maxDist then
                         Just ( b, dist )
+
                     else
                         Nothing
             )
@@ -418,10 +457,16 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     if model.config.paused then
         Sub.none
+
     else
         Sub.batch
-            [ AnimationFrame.diffs Tick
-            , Mouse.moves MouseMoves
+            [ Browser.Events.onAnimationFrameDelta Tick
+            , Browser.Events.onMouseMove
+                (JD.map2 (\a b -> ( a, b ))
+                    (JD.field "movementX" JD.float)
+                    (JD.field "movementY" JD.float)
+                    |> JD.map MouseMoves
+                )
             ]
 
 
